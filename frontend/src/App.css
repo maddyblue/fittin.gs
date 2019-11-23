@@ -1,0 +1,39 @@
+@import './default-dark.css';
+
+a {
+	color: var(--primary);
+}
+
+.flex {
+	display: flex;
+}
+
+.flex > * {
+	background: var(--dp01);
+	padding: 0.5rem;
+	margin: 0.2rem;
+}
+
+h2 {
+	background: var(--dp08);
+}
+
+h3 {
+	background: var(--dp04);
+}
+
+.sorted th {
+	cursor: pointer;
+}
+
+.sort-asc::after {
+	content: '↓';
+}
+
+.sort-desc::after {
+	content: '↑';
+}
+
+.list > * + * {
+	margin-left: 0.5rem;
+}
