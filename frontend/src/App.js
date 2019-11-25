@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
 import 'tachyons/css/tachyons.min.css';
 import { Fetch } from './common';
 import SortedTable from './SortedTable';
