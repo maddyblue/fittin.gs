@@ -7,7 +7,9 @@ function readCookie(name: string) {
 }
 
 const baseURL =
-	process.env.NODE_ENV === 'production' ? 'https://TODO_PROD/' : '/api/';
+	process.env.NODE_ENV === 'production'
+		? 'https://fittings-5anqu7dwna-uc.a.run.app/api/'
+		: '/api/';
 
 async function Fetch(path: string, success: any => void, onErr?: any => void) {
 	const url = baseURL + path;

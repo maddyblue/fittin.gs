@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kelseyhightower/envconfig"
@@ -23,20 +24,23 @@ var (
 )
 
 type Specification struct {
-	Addr string `default:"localhost:4001"`
-	DB   string `default:"postgres://root@localhost:26257/ef?sslmode=disable"`
+	Port    string `default:"4001"`
+	DB_Addr string `default:"postgres://root@localhost:26257/ef?sslmode=disable"`
 }
 
 func main() {
 	flag.Parse()
 
 	var spec Specification
-	err := envconfig.Process("ef", &spec)
+	err := envconfig.Process("", &spec)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	if !strings.Contains(spec.Port, ":") {
+		spec.Port = fmt.Sprintf(":%s", spec.Port)
+	}
 
-	dbURL, err := url.Parse(spec.DB)
+	dbURL, err := url.Parse(spec.DB_Addr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,12 +69,10 @@ func main() {
 		return
 	}
 
-	/*
-		go s.FetchHashes()
-		go s.ProcessHashes()
-		go s.ProcessFits()
-		go s.ProcessZkb()
-	*/
+	go s.FetchHashes()
+	go s.ProcessHashes()
+	go s.ProcessFits()
+	go s.ProcessZkb()
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/Fit", s.Wrap(s.Fit))
@@ -78,8 +80,8 @@ func main() {
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {})
 	mux.Handle("/", http.FileServer(http.Dir("static")))
 
-	fmt.Println("HTTP listen on addr:", spec.Addr)
-	log.Fatal(http.ListenAndServe(spec.Addr, mux))
+	fmt.Println("HTTP listen on addr:", spec.Port)
+	log.Fatal(http.ListenAndServe(spec.Port, mux))
 }
 
 func (s *EFContext) Init() {

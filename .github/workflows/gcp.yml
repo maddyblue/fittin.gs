@@ -1,0 +1,33 @@
+name: Deploy on GCP
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: write cert
+        env:
+          SQL_CERT_BASE64: ${{secrets.SQL_CERT_BASE64}}
+        run: echo ${SQL_CERT_BASE64} | tr ' ' '\n' | base64 -d > sql.crt
+      - name: gcloud build
+        uses: actions-hub/gcloud@master
+        env:
+          PROJECT_ID: ${{secrets.PROJECT_ID}}
+          APPLICATION_CREDENTIALS: ${{secrets.APPLICATION_CREDENTIALS}}
+        with:
+          args: builds submit --tag gcr.io/${{secrets.PROJECT_ID}}/fittings
+      - name: gcloud run deploy
+        uses: actions-hub/gcloud@master
+        env:
+          PROJECT_ID: ${{secrets.PROJECT_ID}}
+          APPLICATION_CREDENTIALS: ${{secrets.APPLICATION_CREDENTIALS}}
+        with:
+          args: >
+            run deploy
+            --image gcr.io/${{secrets.PROJECT_ID}}/fittings
+            --platform managed
+            --region us-central1
+            --allow-unauthenticated
+            --max-instances=1
+            '--set-env-vars=DB_ADDR=${{secrets.DB_ADDR}}'
+            fittings

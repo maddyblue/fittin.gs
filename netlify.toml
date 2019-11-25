@@ -1,0 +1,9 @@
+[build]
+  base = "frontend"
+  command = "yarn build"
+  publish = "build"
+
+[[redirects]]
+  from = "/fit/*"
+  to = "/"
+  status = 200
