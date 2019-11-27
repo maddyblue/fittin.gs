@@ -11,7 +11,7 @@ const baseURL =
 		? 'https://fittings-5anqu7dwna-uc.a.run.app/api/'
 		: '/api/';
 
-async function Fetch(path: string, success: any => void, onErr?: any => void) {
+async function Fetch<T>(path: string, success: (data: T) => void, onErr?: (error: any) => void) {
 	const url = baseURL + path;
 	if (!onErr) {
 		onErr = console.error;

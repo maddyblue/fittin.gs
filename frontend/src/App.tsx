@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import './App.css';
 import 'tachyons/css/tachyons.min.css';
 import { Fetch } from './common';
@@ -13,14 +13,50 @@ import {
 	useHistory,
 } from 'react-router-dom';
 
+interface ItemCharge {
+	ID: number;
+	Name: string;
+	Charge?: {
+		ID: number;
+		Name: string;
+	};
+}
+
+interface FitData {
+	Killmail: number;
+	Zkb: {
+		locationID: number;
+		hash: string;
+		fittedValue: number;
+		totalValue: number;
+		points: number;
+		npc: boolean;
+		solo: boolean;
+		awox: boolean;
+		href: string;
+	};
+	Ship: ItemCharge;
+	Hi: ItemCharge[];
+	Med: ItemCharge[];
+	Low: ItemCharge[];
+	Rig: ItemCharge[];
+	Sub: ItemCharge[];
+	Charges: ItemCharge[];
+}
+
 function Fit() {
 	const { id } = useParams();
-	const [data, setData] = useState(null);
+	const [data, setData] = useState<FitData | null>(null);
 
 	useEffect(() => {
-		Fetch('Fit?id=' + id, data => {
-			const all = [].concat(data.Low, data.Med, data.Hi, data.Rig);
-			const seen = {};
+		Fetch<FitData>('Fit?id=' + id, data => {
+			const all = new Array<ItemCharge>().concat(
+				data.Low,
+				data.Med,
+				data.Hi,
+				data.Rig
+			);
+			const seen: { [name: string]: boolean } = {};
 			data.Charges = [];
 			all.forEach(v => {
 				if (!v.Charge || seen[v.Charge.Name]) {
@@ -34,7 +70,7 @@ function Fit() {
 	}, [id]);
 
 	if (!data) {
-		return 'loading...';
+		return <Fragment>loading...</Fragment>;
 	}
 	return (
 		<div className="flex">
@@ -84,7 +120,7 @@ function Fit() {
 	);
 }
 
-function TextFit(data) {
+function TextFit(data: FitData) {
 	const fit = ['[' + data.Ship.Name + ']'];
 	[data.Low, data.Med, data.Hi, data.Rig].forEach((slot, idx) => {
 		if (idx > 0) {
@@ -104,31 +140,41 @@ function TextFit(data) {
 	return fit.join('\n');
 }
 
-function Slots(props) {
+function Slots(props: { items: ItemCharge[] }) {
 	if (!props.items) {
 		return null;
 	}
-	return props.items
-		.filter(v => v.Name)
-		.map((v, idx) => {
-			return (
-				<div key={idx}>
-					<Icon id={v.ID} alt={v.Name} />{' '}
-					<Link to={'/?item=' + v.ID}>{v.Name}</Link>
-				</div>
-			);
-		});
+	return (
+		<Fragment>
+			{props.items
+				.filter(v => v.Name)
+				.map((v, idx) => {
+					return (
+						<div key={idx}>
+							<Icon id={v.ID} alt={v.Name} />{' '}
+							<Link to={'/?item=' + v.ID}>{v.Name}</Link>
+						</div>
+					);
+				})}
+		</Fragment>
+	);
 }
 
-function Render(props) {
+interface ImgProps {
+	id: number;
+	alt: string;
+	overrideSize?: number;
+}
+
+function Render(props: ImgProps & { size: number }) {
 	return <Img type="render" {...props} />;
 }
 
-function Icon(props) {
+function Icon(props: ImgProps) {
 	return <Img type="icon" size={32} overrideSize={24} {...props} />;
 }
 
-function Img(props) {
+function Img(props: ImgProps & { type: string; size: number }) {
 	return (
 		<img
 			style={{ verticalAlign: 'middle', marginRight: '.2rem' }}
@@ -147,20 +193,34 @@ function Img(props) {
 	);
 }
 
+interface FitsData {
+	Filter: {
+		item: ItemCharge[];
+		ship: ItemCharge[];
+	};
+	Fits: {
+		Killmail: number;
+		Ship: number;
+		Name: string;
+		Cost: number;
+		Hi: ItemCharge[];
+	}[];
+}
+
 function Fits() {
-	const [data, setData] = useState(null);
+	const [data, setData] = useState<FitsData | null>(null);
 	const location = useLocation();
 	const history = useHistory();
 
 	useEffect(() => {
-		Fetch('Fits' + location.search, setData);
+		Fetch<FitsData>('Fits' + location.search, setData);
 	}, [location]);
 
 	if (!data) {
-		return 'loading...';
+		return <Fragment>loading...</Fragment>;
 	}
 
-	const addParam = function(name, val) {
+	const addParam = function(name: string, val: string) {
 		// Using location.search doesn't appear to update on URL
 		// change. I suspect this is due to something I misunderstand
 		// about hooks or some misuse of react router's useLocation,
@@ -208,7 +268,7 @@ function Fits() {
 					{
 						name: 'Name',
 						header: 'ship',
-						cell: (_, row) => (
+						cell: (_: any, row: any) => (
 							<Link to={addParam('ship', row.Ship)}>
 								<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
 								{row.Name}
@@ -219,7 +279,7 @@ function Fits() {
 						name: 'Cost',
 						header: 'fit',
 						desc: true,
-						cell: (v, row) => (
+						cell: (v: any, row: any) => (
 							<Link to={'/fit/' + row.Killmail}>
 								{v > 0 ? <ISK isk={v} /> : 'unknown value'}
 							</Link>
@@ -228,10 +288,10 @@ function Fits() {
 					{
 						name: 'Hi',
 						header: 'high slots',
-						cell: v => <SlotSummary items={v} addParam={addParam} />,
+						cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
 						desc: true,
 						// Sort by number of hi slot modules.
-						cmp: (a, b) => a.length - b.length,
+						cmp: (a: any, b: any) => a.length - b.length,
 					},
 				]}
 				data={data.Fits || []}
@@ -240,9 +300,12 @@ function Fits() {
 	);
 }
 
-function SlotSummary(props) {
-	const counts = {};
-	const ids = {};
+function SlotSummary(props: {
+	items: ItemCharge[];
+	addParam: (name: string, val: string) => string;
+}) {
+	const counts: { [name: string]: number } = {};
+	const ids: { [name: string]: number } = {};
 	props.items.forEach(v => {
 		if (!counts[v.Name]) {
 			counts[v.Name] = 0;
@@ -258,17 +321,21 @@ function SlotSummary(props) {
 		}
 		return a[0].localeCompare(b[0]);
 	});
-	return arr.map(([name, count]) => (
-		<span key={name} title={name} style={{ marginRight: '.2rem' }}>
-			{count}x
-			<Link to={props.addParam('item', ids[name])}>
-				<Icon id={ids[name]} alt={name} overrideSize={32} />
-			</Link>
-		</span>
-	));
+	return (
+		<Fragment>
+			{arr.map(([name, count]) => (
+				<span key={name} title={name} style={{ marginRight: '.2rem' }}>
+					{count}x
+					<Link to={props.addParam('item', ids[name].toString())}>
+						<Icon id={ids[name]} alt={name} overrideSize={32} />
+					</Link>
+				</span>
+			))}
+		</Fragment>
+	);
 }
 
-function ISK(props) {
+function ISK(props: { isk: number }) {
 	const Misk = Number.parseFloat((props.isk / 1e6).toFixed(2));
 	return <span>{Misk.toLocaleString()}M</span>;
 }

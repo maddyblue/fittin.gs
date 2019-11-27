@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
+import React, { Component, ReactNode } from 'react';
 import { createCookie, readCookie } from './common';
 
-const tableSortings = {};
+const tableSortings: { [name: string]: SortedTable[] } = {};
 const sortTableCookie = 'sort-table-';
-function setTableSort(name, sort, dir) {
+function setTableSort(name: string, sort: string, dir: boolean) {
 	const val = sort + ',' + (dir === true).toString();
 	createCookie(sortTableCookie + name, val);
 	const sortings = tableSortings[name];
@@ -15,53 +15,56 @@ function setTableSort(name, sort, dir) {
 		v.setState(st);
 	});
 }
-function registerTableSort(that) {
+function registerTableSort(that: SortedTable) {
 	const name = that.props.name;
 	if (!tableSortings[name]) {
 		tableSortings[name] = [];
 	}
 	tableSortings[name].push(that);
 }
-function unregisterTableSort(that) {
+function unregisterTableSort(that: SortedTable) {
 	const name = that.props.name;
 	tableSortings[name] = tableSortings[name].filter(v => v !== that);
 }
 
-type Cmp = (any, any) => number;
+type Cmp = (a: any, b: any) => number;
 
 type Header = {
-	name: string,
-	header?: any,
-	cell?: (any, any) => any,
-	desc?: boolean,
-	title?: string,
-	cmp?: Cmp,
+	name: string;
+	header?: any;
+	cell?: Cell;
+	desc?: boolean;
+	title?: string;
+	cmp?: Cmp;
 };
+
+type Cell = (cell: any, row?: object) => ReactNode;
 
 type Headers = Header[];
 
 type Props = {
-	name: string,
-	headers: Headers,
-	sort: string,
-	data: any[],
+	name: string;
+	headers: Headers;
+	sort: string;
+	data: Array<any>;
+	notable?: boolean;
 };
 
 type State = {
-	sort: string,
-	sortDir: boolean,
-	lookup: { [string]: any },
+	sort: string;
+	sortDir: boolean;
+	lookup: Lookup;
 };
 
 type Lookup = {
-	[string]: {
-		name: string,
-		header: string,
-		cell: any => string,
-		desc: boolean,
-		title?: string,
-		cmp: Cmp,
-	},
+	[name: string]: {
+		name: string;
+		header: string;
+		cell: Cell;
+		desc: boolean;
+		title?: string;
+		cmp: Cmp;
+	};
 };
 
 class SortedTable extends Component<Props, State> {
@@ -190,18 +193,20 @@ const defaultCmp: Cmp = (a, b): number => {
 	}
 	switch (typeof a) {
 		case 'number':
-		case 'boolean':
 			return a - b;
+		case 'boolean':
+			return (a ? 1 : 0) - (b ? 1 : 0);
 		case 'string':
 			return a.localeCompare(b);
 		default:
 			if (a instanceof Date) {
-				return a - b;
-			} else {
-				debugger;
+				if (a > b) return 1;
+				if (a < b) return -1;
 				return 0;
 			}
 	}
+	debugger;
+	return 0;
 };
 
 export default SortedTable;
