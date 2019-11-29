@@ -1,7 +1,7 @@
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment, useRef } from 'react';
 import './App.css';
 import 'tachyons/css/tachyons.min.css';
-import { Fetch } from './common';
+import { Fetch, useKey } from './common';
 import SortedTable from './SortedTable';
 import {
 	BrowserRouter as Router,
@@ -340,6 +340,91 @@ function ISK(props: { isk: number }) {
 	return <span>{Misk.toLocaleString()}M</span>;
 }
 
+interface SearchState {
+	search: string;
+	results?: SearchResults;
+}
+
+interface SearchResults {
+	Search: string;
+	Results: SearchResult[] | null;
+}
+
+interface SearchResult {
+	Type: string;
+	Name: string;
+	ID: number;
+}
+
+function Search() {
+	const search = new URLSearchParams(window.location.search);
+	const q = search.get('q') || '';
+
+	const [data, setData] = useState<SearchState>({ search: q });
+	const location = useLocation();
+	const history = useHistory();
+	const inputRef = useRef<HTMLInputElement>(null);
+	const enterPress = useKey('enter');
+
+	useEffect(() => {
+		if (inputRef && inputRef.current) {
+			inputRef.current.focus();
+		}
+		Fetch<SearchResults>('Search?term=' + encodeURIComponent(q), res => {
+			if (res && res.Results) {
+				res.Results.sort((a, b) => {
+					if (a.Type === b.Type) {
+						return a.Name.localeCompare(b.Name);
+					}
+					if (a.Type === 'ship') {
+						return -1;
+					}
+					if (b.Type === 'ship') {
+						return 1;
+					}
+					debugger; // should be unreachable
+					return 0;
+				});
+			}
+			setData({ search: q, results: res });
+		});
+	}, [location, q]);
+
+	useEffect(() => {
+		if (enterPress && data.results && data.results.Results) {
+			const r = data.results.Results[0];
+			history.push('/?' + r.Type + '=' + r.ID.toString());
+		}
+	}, [enterPress, data.results, history]);
+
+	return (
+		<div>
+			<input
+				ref={inputRef}
+				type="text"
+				value={q}
+				onChange={ev => {
+					const v = ev.target.value;
+					if (v === undefined) {
+						return;
+					}
+					history.replace('/search?q=' + encodeURIComponent(v));
+				}}
+			/>
+			{data.results && data.results.Results
+				? data.results.Results.map(v => (
+						<div key={v.ID}>
+							<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
+								<Icon id={v.ID} alt={v.Name} /> {v.Name}
+							</Link>{' '}
+							({v.Type})
+						</div>
+				  ))
+				: null}
+		</div>
+	);
+}
+
 export default function App() {
 	return (
 		<Router>
@@ -349,11 +434,15 @@ export default function App() {
 						<li>
 							<Link to="/">fits</Link>
 						</li>
+						<li>
+							<Link to="/search">search</Link>
+						</li>
 					</ul>
 				</nav>
 
 				<Switch>
 					<Route path="/fit/:id" children={<Fit />} />
+					<Route path="/search" children={<Search />} />
 					<Route path="/" children={<Fits />} />
 				</Switch>
 			</div>

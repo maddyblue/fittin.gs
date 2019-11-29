@@ -77,6 +77,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/api/Fit", s.Wrap(s.Fit))
 	mux.Handle("/api/Fits", s.Wrap(s.Fits))
+	mux.Handle("/api/Search", s.Wrap(s.Search))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {})
 	mux.Handle("/", http.FileServer(http.Dir("static")))
 
@@ -93,6 +94,29 @@ func (s *EFContext) Init() {
 
 	var raw []byte
 	if err := s.DB.QueryRow(`SELECT val FROM config WHERE key = $1`, globalKey).Scan(&raw); err == sql.ErrNoRows {
+		{
+			fmt.Println("reading groupIDs.yaml")
+			r, err := os.Open("sde/fsd/groupIDs.yaml")
+			if err != nil {
+				panic(err)
+			}
+			defer r.Close()
+			var yml map[int32]struct {
+				CategoryID int32 `yaml:"categoryID"`
+				Name       map[string]string
+			}
+			if err := yaml.NewDecoder(r).Decode(&yml); err != nil {
+				panic(err)
+			}
+			s.Global.Groups = map[int32]Group{}
+			for id, m := range yml {
+				s.Global.Groups[id] = Group{
+					ID:       id,
+					Name:     m.Name["en"],
+					Category: m.CategoryID,
+				}
+			}
+		}
 		{
 			fmt.Println("reading types.yaml")
 			r, err := os.Open("sde/fsd/typeIDs.yaml")
@@ -116,17 +140,6 @@ func (s *EFContext) Init() {
 				}
 			}
 		}
-		{
-			fmt.Println("reading groupIDs.yaml")
-			r, err := os.Open("sde/fsd/groupIDs.yaml")
-			if err != nil {
-				panic(err)
-			}
-			defer r.Close()
-			if err := yaml.NewDecoder(r).Decode(&s.Global.Groups); err != nil {
-				panic(err)
-			}
-		}
 		var b bytes.Buffer
 		if err := gob.NewEncoder(&b).Encode(s.Global); err != nil {
 			panic(err)
@@ -142,4 +155,38 @@ func (s *EFContext) Init() {
 			panic(err)
 		}
 	}
+}
+
+type EFContext struct {
+	DB *sql.DB
+	X  *sqlx.DB
+
+	Global struct {
+		Items  map[int32]Item
+		Groups map[int32]Group
+	}
+}
+
+type Group struct {
+	ID       int32
+	Name     string
+	Category int32
+}
+
+func (g Group) IsCharge() bool {
+	return g.Category == 8
+}
+
+func (g Group) IsModule() bool {
+	return g.Category == 7
+}
+
+func (g Group) IsShip() bool {
+	return g.Category == 6
+}
+
+type Item struct {
+	ID    int32  `json:",omitempty"`
+	Name  string `json:",omitempty"`
+	Group int32  `json:"-"`
 }

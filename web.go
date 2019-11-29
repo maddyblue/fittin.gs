@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,22 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/pkg/errors"
 )
-
-type EFContext struct {
-	DB *sql.DB
-	X  *sqlx.DB
-
-	Global struct {
-		Items  map[int32]Item
-		Groups map[int32]struct {
-			CategoryID Category `yaml:"categoryID"`
-		}
-	}
-}
 
 func (s *EFContext) Wrap(
 	f func(context.Context, *http.Request) (interface{}, error),
@@ -158,13 +144,51 @@ func (s *EFContext) Fits(ctx context.Context, r *http.Request) (interface{}, err
 		json.Unmarshal(f.HiRaw, &his)
 		for _, h := range his {
 			item := s.Global.Items[h]
-			if s.Global.Groups[item.Group].CategoryID.IsCharge() {
+			if s.Global.Groups[item.Group].IsCharge() {
 				continue
 			}
 			f.Hi = append(f.Hi, item)
 		}
 	}
 	return ret, err
+}
+
+var searchCategories = map[int32]string{
+	6:  "ship",
+	7:  "item", // module
+	8:  "item", // charge
+	32: "item", // subsystem
+}
+
+func (s *EFContext) Search(ctx context.Context, r *http.Request) (interface{}, error) {
+	type Result struct {
+		Type string
+		Name string
+		ID   int32
+	}
+	var ret struct {
+		Search  string
+		Results []Result
+	}
+	ret.Search = strings.ToLower(r.FormValue("term"))
+	if len(ret.Search) < 3 {
+		return nil, nil
+	}
+	if ret.Search != "" {
+		for id, item := range s.Global.Items {
+			if !strings.Contains(strings.ToLower(item.Name), ret.Search) {
+				continue
+			}
+			if typ := searchCategories[s.Global.Groups[item.Group].Category]; typ != "" {
+				ret.Results = append(ret.Results, Result{
+					Type: typ,
+					Name: item.Name,
+					ID:   id,
+				})
+			}
+		}
+	}
+	return ret, nil
 }
 
 func resultToBytes(res interface{}) (data, gzipped []byte, err error) {

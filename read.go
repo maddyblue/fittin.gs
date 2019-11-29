@@ -125,28 +125,12 @@ func parseKill(ctx context.Context, client *goesi.APIClient, id, hash string) *K
 	}
 }
 
-type Category int32
-
-func (c Category) IsCharge() bool {
-	return c == 8
-}
-
-type Item struct {
-	ID    int32  `json:",omitempty"`
-	Name  string `json:",omitempty"`
-	Group int32  `json:"-"`
-}
-
 func mustInt32(s string) int32 {
 	i, err := strconv.ParseInt(s, 10, 32)
 	if err != nil {
 		panic(err)
 	}
 	return int32(i)
-}
-
-func init() {
-
 }
 
 type Slot int32
@@ -552,7 +536,7 @@ func (k KM) Items(s *EFContext) (hi, med, low, rig, sub [8]ItemCharge) {
 	for _, i := range k.Victim.Items {
 		flag := Slot(i.Flag)
 		item := s.Global.Items[i.ItemTypeId]
-		charge := s.Global.Groups[item.Group].CategoryID.IsCharge()
+		charge := s.Global.Groups[item.Group].IsCharge()
 		var n Slot
 		var cur *[8]ItemCharge
 		switch {
