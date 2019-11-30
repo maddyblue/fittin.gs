@@ -378,7 +378,6 @@ function setTitle(name?: string) {
 		name = '';
 	}
 	document.title = name + 'fittin.gs';
-	console.log(name);
 }
 
 function Search() {
