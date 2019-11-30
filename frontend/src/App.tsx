@@ -51,6 +51,7 @@ function Fit() {
 	const [data, setData] = useState<FitData | null>(null);
 
 	useEffect(() => {
+		setTitle();
 		Fetch<FitData>('Fit?id=' + id, data => {
 			const all = new Array<ItemCharge>().concat(
 				data.Low,
@@ -68,6 +69,7 @@ function Fit() {
 				data.Charges.push(v.Charge);
 			});
 			setData(data);
+			setTitle(data.Ship.Name);
 		});
 	}, [id]);
 
@@ -211,9 +213,13 @@ function Fits() {
 	const [data, setData] = useState<FitsData | null>(null);
 	const location = useLocation();
 	const history = useHistory();
+	setTitle();
 
 	useEffect(() => {
-		Fetch<FitsData>('Fits' + location.search, setData);
+		Fetch<FitsData>('Fits' + location.search, data => {
+			setTitle();
+			setData(data);
+		});
 	}, [location]);
 
 	if (!data) {
@@ -365,6 +371,16 @@ interface SearchResult {
 	ID: number;
 }
 
+function setTitle(name?: string) {
+	if (name) {
+		name += ' - ';
+	} else {
+		name = '';
+	}
+	document.title = name + 'fittin.gs';
+	console.log(name);
+}
+
 function Search() {
 	const search = new URLSearchParams(window.location.search);
 	const q = search.get('q') || '';
@@ -376,6 +392,7 @@ function Search() {
 	const enterPress = useKey('enter');
 
 	useEffect(() => {
+		setTitle(q);
 		if (inputRef && inputRef.current) {
 			inputRef.current.focus();
 		}
@@ -423,18 +440,18 @@ function Search() {
 					}}
 				/>
 			</div>
-			<div className={flexChildrenClass}>
-				{data.results && data.results.Results
-					? data.results.Results.map(v => (
-							<div key={v.ID} className="ma2">
-								<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
-									<Icon id={v.ID} alt={v.Name} /> {v.Name}
-								</Link>{' '}
-								({v.Type})
-							</div>
-					  ))
-					: null}
-			</div>
+			{data.results && data.results.Results ? (
+				<div className={flexChildrenClass}>
+					{data.results.Results.map(v => (
+						<div key={v.ID} className="ma2">
+							<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
+								<Icon id={v.ID} alt={v.Name} /> {v.Name}
+							</Link>{' '}
+							({v.Type})
+						</div>
+					))}
+				</div>
+			) : null}
 		</div>
 	);
 }
