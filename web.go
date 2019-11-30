@@ -213,7 +213,7 @@ func (s *EFContext) Search(
 	}
 	if ret.Search != "" {
 		for id, item := range s.Global.Items {
-			if !strings.Contains(strings.ToLower(item.Name), ret.Search) {
+			if !strings.Contains(item.Lower, ret.Search) {
 				continue
 			}
 			if typ := searchCategories[s.Global.Groups[item.Group].Category]; typ != "" {

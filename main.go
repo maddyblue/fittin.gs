@@ -115,11 +115,15 @@ func (s *EFContext) Init() {
 			}
 			s.Global.Groups = map[int32]Group{}
 			for id, m := range yml {
-				s.Global.Groups[id] = Group{
+				g := Group{
 					ID:       id,
 					Name:     m.Name["en"],
 					Category: m.CategoryID,
 				}
+				if !g.IsKnown() {
+					continue
+				}
+				s.Global.Groups[id] = g
 			}
 		}
 		{
@@ -138,10 +142,14 @@ func (s *EFContext) Init() {
 			}
 			s.Global.Items = map[int32]Item{}
 			for id, m := range yml {
+				if _, ok := s.Global.Groups[m.GroupID]; !ok {
+					continue
+				}
 				s.Global.Items[id] = Item{
 					ID:    id,
 					Group: m.GroupID,
 					Name:  m.Name["en"],
+					Lower: strings.ToLower(m.Name["en"]),
 				}
 			}
 		}
@@ -178,6 +186,20 @@ type Group struct {
 	Category int32
 }
 
+func (g Group) IsKnown() bool {
+	for _, f := range []func() bool{
+		g.IsCharge,
+		g.IsModule,
+		g.IsShip,
+		g.IsSubsystem,
+	} {
+		if f() {
+			return true
+		}
+	}
+	return false
+}
+
 func (g Group) IsCharge() bool {
 	return g.Category == 8
 }
@@ -190,8 +212,13 @@ func (g Group) IsShip() bool {
 	return g.Category == 6
 }
 
+func (g Group) IsSubsystem() bool {
+	return g.Category == 32
+}
+
 type Item struct {
 	ID    int32  `json:",omitempty"`
 	Name  string `json:",omitempty"`
+	Lower string `json:"-"`
 	Group int32  `json:"-"`
 }
