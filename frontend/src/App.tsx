@@ -13,6 +13,8 @@ import {
 	useHistory,
 } from 'react-router-dom';
 
+const flexChildrenClass = 'bg-dp01 pa2 ma1';
+
 interface ItemCharge {
 	ID: number;
 	Name: string;
@@ -73,15 +75,13 @@ function Fit() {
 		return <Fragment>loading...</Fragment>;
 	}
 	return (
-		<div className="flex">
-			<div>
+		<div className="flex flex-wrap">
+			<div className={flexChildrenClass}>
 				<h2>
-					<Link to={'/?ship=' + data.Ship.ID}>{data.Ship.Name}</Link>&nbsp;
+					<Link to={'/?ship=' + data.Ship.ID}>{data.Ship.Name}</Link>
 				</h2>
 				<Render id={data.Ship.ID} size={256} alt={data.Ship.Name} />
-				<pre style={{ background: 'var(--dp04)', padding: '.2rem' }}>
-					{TextFit(data)}
-				</pre>
+				<pre className="bg-dp04 pa1">{TextFit(data)}</pre>
 				{data.Zkb.fittedValue ? (
 					<div>
 						Fitted value: <ISK isk={data.Zkb.fittedValue} />
@@ -94,7 +94,7 @@ function Fit() {
 					<a href={'https://everef.net/type/' + data.Ship.ID}>everef</a>
 				</div>
 			</div>
-			<div>
+			<div className={flexChildrenClass}>
 				<div>
 					<h3>high slots</h3>
 					<Slots items={data.Hi} />
@@ -177,7 +177,7 @@ function Icon(props: ImgProps) {
 function Img(props: ImgProps & { type: string; size: number }) {
 	return (
 		<img
-			style={{ verticalAlign: 'middle', marginRight: '.2rem' }}
+			className="v-mid mr2"
 			src={
 				'https://images.evetech.net/types/' +
 				props.id +
@@ -238,64 +238,71 @@ function Fits() {
 	};
 
 	return (
-		<div>
-			{Object.entries(data.Filter).map(([type, items]) =>
-				items.map(item => (
-					<div key={item.ID}>
-						filter by {type}: {item.Name}
-						<button
-							onClick={() => {
-								const old = new URLSearchParams(location.search);
-								const next = new URLSearchParams();
-								for (let pair of old.entries()) {
-									if (pair[0] === type && pair[1] === item.ID.toString()) {
-										continue;
+		<div className="flex flex-column">
+			<div className={flexChildrenClass}>
+				{Object.entries(data.Filter).map(([type, items]) =>
+					items.map(item => (
+						<div key={item.ID} className="ma1">
+							filter by {type}: {item.Name}
+							<button
+								className="ml2 ba bg-dp08 pointer"
+								onClick={() => {
+									const old = new URLSearchParams(location.search);
+									const next = new URLSearchParams();
+									for (let pair of old.entries()) {
+										if (pair[0] === type && pair[1] === item.ID.toString()) {
+											continue;
+										}
+										next.append(pair[0], pair[1]);
 									}
-									next.append(pair[0], pair[1]);
-								}
-								history.push(location.pathname + '?' + next.toString());
-							}}
-						>
-							x
-						</button>
-					</div>
-				))
-			)}
-			<SortedTable
-				name="fits"
-				sort="Cost"
-				headers={[
-					{
-						name: 'Name',
-						header: 'ship',
-						cell: (_: any, row: any) => (
-							<Link to={addParam('ship', row.Ship)}>
-								<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
-								{row.Name}
-							</Link>
-						),
-					},
-					{
-						name: 'Cost',
-						header: 'fit',
-						desc: true,
-						cell: (v: any, row: any) => (
-							<Link to={'/fit/' + row.Killmail}>
-								{v > 0 ? <ISK isk={v} /> : 'unknown value'}
-							</Link>
-						),
-					},
-					{
-						name: 'Hi',
-						header: 'high slots',
-						cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
-						desc: true,
-						// Sort by number of hi slot modules.
-						cmp: (a: any, b: any) => a.length - b.length,
-					},
-				]}
-				data={data.Fits || []}
-			/>
+									history.push(location.pathname + '?' + next.toString());
+								}}
+							>
+								x
+							</button>
+						</div>
+					))
+				)}
+			</div>
+			<div className={flexChildrenClass}>
+				<SortedTable
+					name="fits"
+					sort="Cost"
+					headers={[
+						{
+							name: 'Name',
+							header: 'ship',
+							cell: (_: any, row: any) => (
+								<Link to={addParam('ship', row.Ship)}>
+									<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
+									{row.Name}
+								</Link>
+							),
+						},
+						{
+							name: 'Cost',
+							header: 'fit',
+							desc: true,
+							cell: (v: any, row: any) => (
+								<Link to={'/fit/' + row.Killmail}>
+									{v > 0 ? <ISK isk={v} /> : 'unknown value'}
+								</Link>
+							),
+						},
+						{
+							name: 'Hi',
+							header: 'high slots',
+							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+							desc: true,
+							// Sort by number of hi slot modules.
+							cmp: (a: any, b: any) => a.length - b.length,
+						},
+					]}
+					data={data.Fits || []}
+					tableClass="collapse"
+					tdClass="pa1"
+				/>
+			</div>
 		</div>
 	);
 }
@@ -324,7 +331,7 @@ function SlotSummary(props: {
 	return (
 		<Fragment>
 			{arr.map(([name, count]) => (
-				<span key={name} title={name} style={{ marginRight: '.2rem' }}>
+				<span key={name} title={name}>
 					{count}x
 					<Link to={props.addParam('item', ids[name].toString())}>
 						<Icon id={ids[name]} alt={name} overrideSize={32} />
@@ -398,29 +405,34 @@ function Search() {
 	}, [enterPress, data.results, history]);
 
 	return (
-		<div>
-			<input
-				ref={inputRef}
-				type="text"
-				value={q}
-				onChange={ev => {
-					const v = ev.target.value;
-					if (v === undefined) {
-						return;
-					}
-					history.replace('/search?q=' + encodeURIComponent(v));
-				}}
-			/>
-			{data.results && data.results.Results
-				? data.results.Results.map(v => (
-						<div key={v.ID}>
-							<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
-								<Icon id={v.ID} alt={v.Name} /> {v.Name}
-							</Link>{' '}
-							({v.Type})
-						</div>
-				  ))
-				: null}
+		<div className="flex flex-column">
+			<div className={flexChildrenClass}>
+				search:{' '}
+				<input
+					ref={inputRef}
+					type="text"
+					value={q}
+					onChange={ev => {
+						const v = ev.target.value;
+						if (v === undefined) {
+							return;
+						}
+						history.replace('/search?q=' + encodeURIComponent(v));
+					}}
+				/>
+			</div>
+			<div className={flexChildrenClass}>
+				{data.results && data.results.Results
+					? data.results.Results.map(v => (
+							<div key={v.ID} className="ma2">
+								<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
+									<Icon id={v.ID} alt={v.Name} /> {v.Name}
+								</Link>{' '}
+								({v.Type})
+							</div>
+					  ))
+					: null}
+			</div>
 		</div>
 	);
 }
@@ -429,22 +441,23 @@ export default function App() {
 	return (
 		<Router>
 			<div className="sans-serif">
-				<nav>
-					<ul>
-						<li>
-							<Link to="/">fits</Link>
+				<nav className="pa3 bg-variant">
+					<ul className="list ma0 pa0">
+						<li className="ma2">
+							<Link to="/">fittin.gs</Link>
 						</li>
-						<li>
+						<li className="ma2">
 							<Link to="/search">search</Link>
 						</li>
 					</ul>
 				</nav>
-
-				<Switch>
-					<Route path="/fit/:id" children={<Fit />} />
-					<Route path="/search" children={<Search />} />
-					<Route path="/" children={<Fits />} />
-				</Switch>
+				<div className="ma3">
+					<Switch>
+						<Route path="/fit/:id" children={<Fit />} />
+						<Route path="/search" children={<Search />} />
+						<Route path="/" children={<Fits />} />
+					</Switch>
+				</div>
 			</div>
 		</Router>
 	);

@@ -4,10 +4,6 @@ a {
 	color: var(--primary);
 }
 
-.flex {
-	display: flex;
-}
-
 .flex > * {
 	background: var(--dp01);
 	padding: 0.5rem;
@@ -36,4 +32,28 @@ h3 {
 
 .list > * + * {
 	margin-left: 0.5rem;
+}
+
+nav ul li {
+	display: inline;
+}
+
+nav a {
+	color: var(--on-primary);
+}
+
+.bg-variant {
+	background: var(--variant);
+}
+
+.bg-dp01 {
+	background: var(--dp01);
+}
+
+.bg-dp04 {
+	background: var(--dp04);
+}
+
+.bg-dp08{
+	background: var(--dp08);
 }

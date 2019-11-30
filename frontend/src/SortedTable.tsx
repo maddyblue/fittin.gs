@@ -48,6 +48,12 @@ type Props = {
 	sort: string;
 	data: Array<any>;
 	notable?: boolean;
+	tableClass?: string;
+	trClass?: string;
+	tdClass?: string;
+	thClass?: string;
+	tbodyClass?: string;
+	theadClass?: string;
 };
 
 type State = {
@@ -149,24 +155,24 @@ class SortedTable extends Component<Props, State> {
 			data.reverse();
 		}
 		const body = data.map((row, i) => (
-			<tr key={i}>
+			<tr key={i} className={this.props.trClass}>
 				{this.props.headers.map(h => (
-					<td key={h.name}>
+					<td key={h.name} className={this.props.tdClass}>
 						{this.state.lookup[h.name].cell(row[h.name], row)}
 					</td>
 				))}
 			</tr>
 		));
 		const inner = [
-			<thead key="thead">
-				<tr>
+			<thead key="thead" className={this.props.theadClass}>
+				<tr className={this.props.trClass}>
 					{this.props.headers.map(h => {
 						let { name, title, header } = h;
 						return (
 							<th
 								key={name}
 								onClick={() => this.sort(name)}
-								className={this.sortClass(name)}
+								className={this.sortClass(name) + ' ' + this.props.thClass}
 								title={title}
 							>
 								{header}
@@ -175,12 +181,14 @@ class SortedTable extends Component<Props, State> {
 					})}
 				</tr>
 			</thead>,
-			<tbody key="tbody">{body}</tbody>,
+			<tbody key="tbody" className={this.props.tbodyClass}>
+				{body}
+			</tbody>,
 		];
 		if (this.props.notable) {
 			return inner;
 		}
-		return <table className="sorted">{inner}</table>;
+		return <table className={'sorted ' + this.props.tableClass}>{inner}</table>;
 	}
 }
 
