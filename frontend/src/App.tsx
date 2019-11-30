@@ -456,6 +456,23 @@ function Search() {
 	);
 }
 
+function About() {
+	setTitle('about');
+
+	return (
+		<div>
+			<div>
+				<a href="/">fittin.gs</a> is a site to quickly find Eve fittings. Data
+				is scraped from <a href="https://zkillboard.com/">zkillboard</a>.
+			</div>
+			<div className="mt2">
+				Submit feature requests or bug reports on{' '}
+				<a href="https://github.com/mjibson/fittin.gs">GitHub</a>.
+			</div>
+		</div>
+	);
+}
+
 export default function App() {
 	return (
 		<Router>
@@ -468,12 +485,16 @@ export default function App() {
 						<li className="ma2">
 							<Link to="/search">search</Link>
 						</li>
+						<li className="ma2">
+							<Link to="/about">about</Link>
+						</li>
 					</ul>
 				</nav>
 				<div className="ma3">
 					<Switch>
 						<Route path="/fit/:id" children={<Fit />} />
 						<Route path="/search" children={<Search />} />
+						<Route path="/about" children={<About />} />
 						<Route path="/" children={<Fits />} />
 					</Switch>
 				</div>
