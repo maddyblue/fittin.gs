@@ -185,6 +185,9 @@ func (s *EFContext) Search(ctx context.Context, r *http.Request) (interface{}, e
 					Name: item.Name,
 					ID:   id,
 				})
+				if len(ret.Results) > 50 {
+					break
+				}
 			}
 		}
 	}
