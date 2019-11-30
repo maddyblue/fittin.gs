@@ -106,19 +106,31 @@ func (s *EFContext) Fits(
 	var ret struct {
 		Filter map[string][]Item
 		Fits   []*struct {
-			Killmail int
-			Ship     int32
-			Name     string
-			Cost     int64
-			HiRaw    []byte `json:"-"`
-			Hi       []Item
+			Killmail              int
+			Ship                  int32
+			Name                  string
+			Cost                  int64
+			HiRaw, MedRaw, LowRaw []byte `json:"-"`
+			Hi, Med, Lo           []Item
 		}
 	}
 	ret.Filter = map[string][]Item{}
 	r.ParseForm()
 
 	var sb strings.Builder
-	sb.WriteString(`SELECT killmail, ship, cost, hi AS hiraw FROM fits WHERE true`)
+	sb.WriteString(`
+		SELECT
+			killmail,
+			ship,
+			cost,
+			hi AS hiraw,
+			med AS medraw,
+			low AS lowraw
+		FROM
+			fits
+		WHERE
+			true
+	`)
 	var args []interface{}
 	if ship, _ := strconv.Atoi(r.Form.Get("ship")); ship > 0 {
 		args = append(args, ship)
@@ -145,16 +157,32 @@ func (s *EFContext) Fits(
 	err := s.X.SelectContext(ctx, &ret.Fits, sb.String(), args...)
 	selectT.Stop()
 
+	var his, meds, los []int32
 	for _, f := range ret.Fits {
 		f.Name = s.Global.Items[f.Ship].Name
-		var his []int32
 		json.Unmarshal(f.HiRaw, &his)
-		for _, h := range his {
-			item := s.Global.Items[h]
+		json.Unmarshal(f.MedRaw, &meds)
+		json.Unmarshal(f.LowRaw, &los)
+		for _, v := range his {
+			item := s.Global.Items[v]
 			if s.Global.Groups[item.Group].IsCharge() {
 				continue
 			}
 			f.Hi = append(f.Hi, item)
+		}
+		for _, v := range meds {
+			item := s.Global.Items[v]
+			if s.Global.Groups[item.Group].IsCharge() {
+				continue
+			}
+			f.Med = append(f.Med, item)
+		}
+		for _, v := range los {
+			item := s.Global.Items[v]
+			if s.Global.Groups[item.Group].IsCharge() {
+				continue
+			}
+			f.Lo = append(f.Lo, item)
 		}
 	}
 	return ret, err

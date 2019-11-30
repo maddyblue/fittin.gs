@@ -13,7 +13,7 @@ import {
 	useHistory,
 } from 'react-router-dom';
 
-const flexChildrenClass = 'bg-dp01 pa2 ma1';
+const flexChildrenClass = 'bg-dp01 pa1 ma1';
 
 interface ItemCharge {
 	ID: number;
@@ -88,7 +88,7 @@ function Fit() {
 					<a href={'https://zkillboard.com/kill/' + data.Killmail}>
 						zkillboard
 					</a>
-					<a href={'https://everef.net/type/' + data.Ship.ID}>everef</a>
+					<Ref ID={data.Ship.ID} />
 				</div>
 			</div>
 			<div className={flexChildrenClass}>
@@ -121,6 +121,10 @@ function Fit() {
 			</div>
 		</div>
 	);
+}
+
+function Ref(props: { ID: number }) {
+	return <a href={'https://everef.net/type/' + props.ID}>everef</a>;
 }
 
 function TextFit(data: FitData) {
@@ -253,7 +257,7 @@ function Fits() {
 							<div key={item.ID} className="ma1">
 								filter by {type}: {item.Name}
 								<button
-									className="ml2 ba bg-dp08 pointer"
+									className="mh2 ba bg-dp08 pointer"
 									onClick={() => {
 										const old = new URLSearchParams(location.search);
 										const next = new URLSearchParams();
@@ -268,6 +272,7 @@ function Fits() {
 								>
 									x
 								</button>
+								<Ref ID={item.ID} />
 							</div>
 						))
 					)}
@@ -303,13 +308,26 @@ function Fits() {
 							header: 'high slots',
 							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
 							desc: true,
-							// Sort by number of hi slot modules.
+							cmp: (a: any, b: any) => a.length - b.length,
+						},
+						{
+							name: 'Med',
+							header: 'med slots',
+							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+							desc: true,
+							cmp: (a: any, b: any) => a.length - b.length,
+						},
+						{
+							name: 'Lo',
+							header: 'low slots',
+							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+							desc: true,
 							cmp: (a: any, b: any) => a.length - b.length,
 						},
 					]}
 					data={data.Fits || []}
 					tableClass="collapse"
-					tdClass="pa1"
+					tdClass="ph2"
 				/>
 			</div>
 		</div>
@@ -490,7 +508,7 @@ export default function App() {
 						</li>
 					</ul>
 				</nav>
-				<div className="ma3">
+				<div className="ma1">
 					<Switch>
 						<Route path="/fit/:id" children={<Fit />} />
 						<Route path="/search" children={<Search />} />
