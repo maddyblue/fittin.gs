@@ -83,7 +83,7 @@ function Fit() {
 					<Link to={'/?ship=' + data.Ship.ID}>{data.Ship.Name}</Link>
 				</h2>
 				<Render id={data.Ship.ID} size={256} alt={data.Ship.Name} />
-				<pre className="bg-dp04 pa1">{TextFit(data)}</pre>
+				<pre className="bg-dp04 pa1 f6">{TextFit(data)}</pre>
 				{data.Zkb.fittedValue ? (
 					<div>
 						Fitted value: <ISK isk={data.Zkb.fittedValue} />
