@@ -18,7 +18,7 @@ import (
 )
 
 func (s *EFContext) Wrap(
-	f func(context.Context, *http.Request) (interface{}, error),
+	f func(context.Context, *http.Request, *servertiming.Header) (interface{}, error),
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
@@ -42,7 +42,7 @@ func (s *EFContext) Wrap(
 		start := time.Now()
 		defer func() { fmt.Printf("%s: %s\n", url, time.Since(start)) }()
 		tm := servertiming.FromContext(ctx).NewMetric("req").Start()
-		res, err := f(ctx, r)
+		res, err := f(ctx, r, &sh)
 		tm.Stop()
 		if len(sh.Metrics) > 0 {
 			if len(sh.Metrics) > 10 {
@@ -65,7 +65,9 @@ func (s *EFContext) Wrap(
 	}
 }
 
-func (s *EFContext) Fit(ctx context.Context, r *http.Request) (interface{}, error) {
+func (s *EFContext) Fit(
+	ctx context.Context, r *http.Request, timing *servertiming.Header,
+) (interface{}, error) {
 	id := r.FormValue("id")
 	if id == "" {
 		return nil, errors.New("missing fit id")
@@ -98,7 +100,9 @@ func (s *EFContext) Fit(ctx context.Context, r *http.Request) (interface{}, erro
 	}, err
 }
 
-func (s *EFContext) Fits(ctx context.Context, r *http.Request) (interface{}, error) {
+func (s *EFContext) Fits(
+	ctx context.Context, r *http.Request, timing *servertiming.Header,
+) (interface{}, error) {
 	var ret struct {
 		Filter map[string][]Item
 		Fits   []*struct {
@@ -137,7 +141,10 @@ func (s *EFContext) Fits(ctx context.Context, r *http.Request) (interface{}, err
 	sb.WriteString(` ORDER BY killmail DESC`)
 	sb.WriteString(` LIMIT 100`)
 
+	selectT := timing.NewMetric("select").Start()
 	err := s.X.SelectContext(ctx, &ret.Fits, sb.String(), args...)
+	selectT.Stop()
+
 	for _, f := range ret.Fits {
 		f.Name = s.Global.Items[f.Ship].Name
 		var his []int32
@@ -160,7 +167,9 @@ var searchCategories = map[int32]string{
 	32: "item", // subsystem
 }
 
-func (s *EFContext) Search(ctx context.Context, r *http.Request) (interface{}, error) {
+func (s *EFContext) Search(
+	ctx context.Context, r *http.Request, timing *servertiming.Header,
+) (interface{}, error) {
 	type Result struct {
 		Type string
 		Name string
