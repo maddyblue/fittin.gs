@@ -308,21 +308,21 @@ function Fits() {
 							header: 'high slots',
 							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
 							desc: true,
-							cmp: (a: any, b: any) => a.length - b.length,
+							cmp: slotCmp,
 						},
 						{
 							name: 'Med',
 							header: 'med slots',
 							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
 							desc: true,
-							cmp: (a: any, b: any) => a.length - b.length,
+							cmp: slotCmp,
 						},
 						{
 							name: 'Lo',
 							header: 'low slots',
 							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
 							desc: true,
-							cmp: (a: any, b: any) => a.length - b.length,
+							cmp: slotCmp,
 						},
 					]}
 					data={data.Fits || []}
@@ -334,10 +334,17 @@ function Fits() {
 	);
 }
 
+function slotCmp(a: any, b: any): number {
+	return (a || []).length - (b || []).length;
+}
+
 function SlotSummary(props: {
 	items: ItemCharge[];
 	addParam: (name: string, val: string) => string;
 }) {
+	if (!props.items) {
+		return null;
+	}
 	const counts: { [name: string]: number } = {};
 	const ids: { [name: string]: number } = {};
 	props.items.forEach(v => {
