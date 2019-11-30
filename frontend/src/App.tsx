@@ -53,12 +53,7 @@ function Fit() {
 	useEffect(() => {
 		setTitle();
 		Fetch<FitData>('Fit?id=' + id, data => {
-			const all = new Array<ItemCharge>().concat(
-				data.Low,
-				data.Med,
-				data.Hi,
-				data.Rig
-			);
+			const all = new Array<ItemCharge>().concat(data.Low, data.Med, data.Hi);
 			const seen: { [name: string]: boolean } = {};
 			data.Charges = [];
 			all.forEach(v => {
@@ -113,6 +108,12 @@ function Fit() {
 					<h3>rigs</h3>
 					<Slots items={data.Rig} />
 				</div>
+				{data.Sub[0].Name ? (
+					<div>
+						<h3>subsystems</h3>
+						<Slots items={data.Sub} />
+					</div>
+				) : null}
 				<div>
 					<h3>charges</h3>
 					<Slots items={data.Charges} />
@@ -124,7 +125,7 @@ function Fit() {
 
 function TextFit(data: FitData) {
 	const fit = ['[' + data.Ship.Name + ']'];
-	[data.Low, data.Med, data.Hi, data.Rig].forEach((slot, idx) => {
+	[data.Low, data.Med, data.Hi, data.Rig, data.Sub].forEach((slot, idx) => {
 		if (idx > 0) {
 			fit.push('');
 		}
