@@ -239,31 +239,33 @@ function Fits() {
 
 	return (
 		<div className="flex flex-column">
-			<div className={flexChildrenClass}>
-				{Object.entries(data.Filter).map(([type, items]) =>
-					items.map(item => (
-						<div key={item.ID} className="ma1">
-							filter by {type}: {item.Name}
-							<button
-								className="ml2 ba bg-dp08 pointer"
-								onClick={() => {
-									const old = new URLSearchParams(location.search);
-									const next = new URLSearchParams();
-									for (let pair of old.entries()) {
-										if (pair[0] === type && pair[1] === item.ID.toString()) {
-											continue;
+			{Object.keys(data.Filter).length ? (
+				<div className={flexChildrenClass}>
+					{Object.entries(data.Filter).map(([type, items]) =>
+						items.map(item => (
+							<div key={item.ID} className="ma1">
+								filter by {type}: {item.Name}
+								<button
+									className="ml2 ba bg-dp08 pointer"
+									onClick={() => {
+										const old = new URLSearchParams(location.search);
+										const next = new URLSearchParams();
+										for (let pair of old.entries()) {
+											if (pair[0] === type && pair[1] === item.ID.toString()) {
+												continue;
+											}
+											next.append(pair[0], pair[1]);
 										}
-										next.append(pair[0], pair[1]);
-									}
-									history.push(location.pathname + '?' + next.toString());
-								}}
-							>
-								x
-							</button>
-						</div>
-					))
-				)}
-			</div>
+										history.push(location.pathname + '?' + next.toString());
+									}}
+								>
+									x
+								</button>
+							</div>
+						))
+					)}
+				</div>
+			) : null}
 			<div className={flexChildrenClass}>
 				<SortedTable
 					name="fits"
