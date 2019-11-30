@@ -38,7 +38,7 @@ func (d drv) Open(name string) (driver.Conn, error) {
 	c, err := pq.Open(name)
 	c = &conn{
 		Conn: c,
-		log:  true,
+		log:  *flagLog,
 	}
 	return c, err
 }

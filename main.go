@@ -21,6 +21,7 @@ var (
 	flagParse        = flag.String("parse", "", "JSON file to parse")
 	flagProcess      = flag.Bool("process", false, "processed unprocessed killmails")
 	flagCreateTables = flag.Bool("create-tables", false, "create tables")
+	flagLog          = flag.Bool("log", false, "log DB")
 )
 
 type Specification struct {
