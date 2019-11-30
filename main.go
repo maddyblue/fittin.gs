@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"flag"
@@ -65,16 +66,17 @@ func main() {
 		s.CreateTables()
 	}
 
+	ctx := context.Background()
+
 	if *flagParse != "" {
-		s.Parse(*flagParse)
+		s.Parse(ctx, *flagParse)
 		return
 	}
 
 	if !*flagLog {
-		go s.FetchHashes()
-		go s.ProcessHashes()
-		go s.ProcessFits()
-		go s.ProcessZkb()
+		go s.FetchHashes(ctx)
+		go s.ProcessFits(ctx)
+		go s.ProcessZkb(ctx)
 	}
 
 	mux := http.NewServeMux()

@@ -14,6 +14,7 @@ import (
 
 	"github.com/antihax/goesi"
 	"github.com/antihax/goesi/esi"
+	"github.com/cockroachdb/cockroach-go/crdb"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 )
@@ -81,14 +82,13 @@ type Kill struct {
 	json []byte
 }
 
-func parseKMs(r io.Reader) ([]*Kill, error) {
+func parseKMs(ctx context.Context, r io.Reader) ([]*Kill, error) {
 	var m map[string]string
 	if err := json.NewDecoder(r).Decode(&m); err != nil {
 		return nil, err
 	}
 
 	client := goesi.NewAPIClient(nil, "ef")
-	ctx := context.Background()
 
 	var kills []*Kill
 	fmt.Println("fetching", len(m), "kills")
@@ -226,7 +226,7 @@ func (s Slot) IsFitting() bool {
 	return false
 }
 
-func (s *EFContext) FetchHashes() {
+func (s *EFContext) FetchHashes(ctx context.Context) {
 	for {
 		resp, _ := http.Get("https://redisq.zkillboard.com/listen.php")
 		wait := false
@@ -243,20 +243,15 @@ func (s *EFContext) FetchHashes() {
 				if err != nil {
 					panic(err)
 				}
-				if err := func() error {
-					txn, err := s.DB.Begin()
-					defer txn.Rollback()
-					if err != nil {
+				if err := crdb.ExecuteTx(ctx, s.DB, nil, func(txn *sql.Tx) error {
+					if _, err := txn.ExecContext(ctx, `UPSERT INTO hashes (id, hash, processed) VALUES ($1, $2, $3)`, pkg.Package.KillID, pkg.Package.Zkb.Hash, ProcHashFetched); err != nil {
 						return err
 					}
-					if _, err := txn.Exec(`UPSERT INTO hashes (id, hash, processed) VALUES ($1, $2, $3)`, pkg.Package.KillID, pkg.Package.Zkb.Hash, ProcHashFetched); err != nil {
+					if _, err := txn.ExecContext(ctx, `UPSERT INTO killmails (id, km, zkb) VALUES ($1, $2, $3)`, pkg.Package.KillID, rawKM, rawZKB); err != nil {
 						return err
 					}
-					if _, err := txn.Exec(`UPSERT INTO killmails (id, km, zkb) VALUES ($1, $2, $3)`, pkg.Package.KillID, rawKM, rawZKB); err != nil {
-						return err
-					}
-					return txn.Commit()
-				}(); err != nil {
+					return nil
+				}); err != nil {
 					log.Print(err)
 				} else {
 					log.Println("inserted", pkg.Package.KillID)
@@ -321,13 +316,13 @@ type Zkb struct {
 	Href        string  `json:"href"`
 }
 
-func (s *EFContext) Parse(inputFile string) {
+func (s *EFContext) Parse(ctx context.Context, inputFile string) {
 	f, err := os.Open(inputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
-	kms, err := parseKMs(f)
+	kms, err := parseKMs(ctx, f)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -370,20 +365,9 @@ func (s *EFContext) Parse(inputFile string) {
 	}
 }
 
-func (s *EFContext) ProcessHashes() {
-	return
+func (s *EFContext) ProcessZkb(ctx context.Context) {
 	for {
-		if err := s.processKM(); err == sql.ErrNoRows {
-			time.Sleep(time.Second * 10)
-		} else if err != nil {
-			log.Printf("process fits: %+v", err)
-		}
-	}
-}
-
-func (s *EFContext) ProcessZkb() {
-	for {
-		if err := s.processZkb(); err == sql.ErrNoRows {
+		if err := crdb.ExecuteTx(ctx, s.DB, nil, s.processZkb); err == sql.ErrNoRows {
 			time.Sleep(time.Second * 10)
 		} else if err != nil {
 			log.Printf("process zkb: %+v", err)
@@ -391,12 +375,7 @@ func (s *EFContext) ProcessZkb() {
 	}
 }
 
-func (s *EFContext) processZkb() error {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return err
-	}
-
+func (s *EFContext) processZkb(tx *sql.Tx) error {
 	var raw []byte
 	if err := tx.QueryRow(`SELECT zkb FROM killmails WHERE processed = $1 LIMIT 1`, ProcKMZkbAdded).Scan(&raw); err != nil {
 		return err
@@ -448,12 +427,12 @@ func (s *EFContext) processZkb() error {
 		return errors.Wrap(err, "update killmails")
 	}
 
-	return tx.Commit()
+	return nil
 }
 
-func (s *EFContext) ProcessFits() {
+func (s *EFContext) ProcessFits(ctx context.Context) {
 	for {
-		if err := s.processKM(); err == sql.ErrNoRows {
+		if err := crdb.ExecuteTx(ctx, s.DB, nil, s.processKM); err == sql.ErrNoRows {
 			time.Sleep(time.Second * 10)
 		} else if err != nil {
 			log.Printf("process fits: %+v", err)
@@ -461,12 +440,7 @@ func (s *EFContext) ProcessFits() {
 	}
 }
 
-func (s *EFContext) processKM() error {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return err
-	}
-
+func (s *EFContext) processKM(tx *sql.Tx) error {
 	var rawKM, rawZKB []byte
 	if err := tx.QueryRow(`SELECT km, zkb FROM killmails WHERE processed = 0 LIMIT 1`).Scan(&rawKM, &rawZKB); err != nil {
 		return err
@@ -529,7 +503,7 @@ func (s *EFContext) processKM() error {
 		return errors.Wrap(err, "update killmails")
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (k KM) Items(s *EFContext) (hi, med, low, rig, sub [8]ItemCharge) {
