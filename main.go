@@ -70,10 +70,12 @@ func main() {
 		return
 	}
 
-	go s.FetchHashes()
-	go s.ProcessHashes()
-	go s.ProcessFits()
-	go s.ProcessZkb()
+	if !*flagLog {
+		go s.FetchHashes()
+		go s.ProcessHashes()
+		go s.ProcessFits()
+		go s.ProcessZkb()
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/Fit", s.Wrap(s.Fit))
