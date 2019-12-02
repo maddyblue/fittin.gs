@@ -257,7 +257,7 @@ function Fits() {
 							<div key={item.ID} className="ma1">
 								filter by {type}: {item.Name}
 								<button
-									className="mh2 ba bg-dp08 pointer"
+									className="mh2 ba b--secondary bg-dp08 pointer"
 									onClick={() => {
 										const old = new URLSearchParams(location.search);
 										const next = new URLSearchParams();
@@ -502,7 +502,7 @@ export default function App() {
 	return (
 		<Router>
 			<div className="sans-serif">
-				<nav className="pa3 bg-variant">
+				<nav className="pa3 bg-dp04">
 					<ul className="list ma0 pa0">
 						<li className="ma2">
 							<Link to="/">fittin.gs</Link>

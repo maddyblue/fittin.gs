@@ -38,14 +38,6 @@ nav ul li {
 	display: inline;
 }
 
-nav a {
-	color: var(--on-primary);
-}
-
-.bg-variant {
-	background: var(--variant);
-}
-
 .bg-dp01 {
 	background: var(--dp01);
 }
@@ -56,4 +48,12 @@ nav a {
 
 .bg-dp08 {
 	background: var(--dp08);
+}
+
+.b--secondary {
+	border-color: var(--secondary);
+}
+
+button {
+	color: var(--emph-high);
 }
