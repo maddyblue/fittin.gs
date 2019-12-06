@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	servertiming "github.com/mitchellh/go-server-timing"
@@ -229,6 +230,25 @@ func (s *EFContext) Search(
 		}
 	}
 	return ret, nil
+}
+
+func (s *EFContext) Sync(
+	ctx context.Context, r *http.Request, timing *servertiming.Header,
+) (interface{}, error) {
+	var wg sync.WaitGroup
+	for _, f := range []func(context.Context){
+		s.FetchHashes,
+		s.ProcessFits,
+	} {
+		f := f
+		wg.Add(1)
+		go func() {
+			f(ctx)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return nil, nil
 }
 
 func resultToBytes(res interface{}) (data, gzipped []byte, err error) {

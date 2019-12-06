@@ -226,62 +226,69 @@ func (s Slot) IsFitting() bool {
 	return false
 }
 
+// FetchHashes listens on the zkillboard redisq API and populates the hashes
+// and killmails tables with results. As soon as zkillboard has no more results
+// or ctx is cancelled this function returns.
 func (s *EFContext) FetchHashes(ctx context.Context) {
+	// We don't want the db txn to fail if ctx is canceled.
+	dbCtx := context.Background()
 	for {
-		resp, _ := http.Get("https://redisq.zkillboard.com/listen.php")
-		wait := false
-		if resp != nil && resp.StatusCode == 200 {
-			var pkg ZKillPackage
-			_ = json.NewDecoder(resp.Body).Decode(&pkg)
-			resp.Body.Close()
-			if pkg.Package != nil {
-				rawKM, err := json.Marshal(pkg.Package.Killmail)
-				if err != nil {
-					panic(err)
-				}
-				rawZKB, err := json.Marshal(pkg.Package.Zkb)
-				if err != nil {
-					panic(err)
-				}
-				if err := crdb.ExecuteTx(ctx, s.DB, nil, func(txn *sql.Tx) error {
-					if _, err := txn.ExecContext(ctx, `
-						INSERT
-						INTO
-							hashes (id, hash, processed)
-						VALUES
-							($1, $2, $3)
-						ON CONFLICT
-							(id)
-						DO
-							NOTHING
-					`, pkg.Package.KillID, pkg.Package.Zkb.Hash, ProcHashFetched); err != nil {
-						return err
-					}
-					if _, err := txn.ExecContext(ctx, `
-						INSERT
-						INTO
-							killmails (id, km, zkb)
-						VALUES
-							($1, $2, $3)
-						ON CONFLICT
-							(id)
-						DO
-							NOTHING
-					`, pkg.Package.KillID, rawKM, rawZKB); err != nil {
-						return err
-					}
-					return nil
-				}); err != nil {
-					log.Print(err)
-				} else {
-					log.Println("inserted", pkg.Package.KillID)
-				}
-			}
-		} else {
-			wait = true
+		if ctx.Err() != nil {
+			return
 		}
-		if wait {
-			time.Sleep(time.Second * 10)
+
+		// Use a low ttw so the request stops as soon as possible to
+		// lower the google cloud run request times.
+		resp, _ := http.Get("https://redisq.zkillboard.com/listen.php?queueID=fittin.gs&ttw=1")
+		if resp == nil || resp.StatusCode != 200 {
+			return
+		}
+		var pkg ZKillPackage
+		_ = json.NewDecoder(resp.Body).Decode(&pkg)
+		resp.Body.Close()
+		if pkg.Package == nil {
+			return
+		}
+		rawKM, err := json.Marshal(pkg.Package.Killmail)
+		if err != nil {
+			panic(err)
+		}
+		rawZKB, err := json.Marshal(pkg.Package.Zkb)
+		if err != nil {
+			panic(err)
+		}
+		if err := crdb.ExecuteTx(dbCtx, s.DB, nil, func(txn *sql.Tx) error {
+			if _, err := txn.ExecContext(dbCtx, `
+				INSERT
+				INTO
+					hashes (id, hash, processed)
+				VALUES
+					($1, $2, $3)
+				ON CONFLICT
+					(id)
+				DO
+					NOTHING
+			`, pkg.Package.KillID, pkg.Package.Zkb.Hash, ProcHashFetched); err != nil {
+				return err
+			}
+			if _, err := txn.ExecContext(dbCtx, `
+				INSERT
+				INTO
+					killmails (id, km, zkb)
+				VALUES
+					($1, $2, $3)
+				ON CONFLICT
+					(id)
+				DO
+					NOTHING
+			`, pkg.Package.KillID, rawKM, rawZKB); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			log.Print(err)
+		} else {
+			log.Println("inserted", pkg.Package.KillID)
 		}
 	}
 }
@@ -472,11 +479,21 @@ func (s *EFContext) processZkb(tx *sql.Tx) error {
 }
 
 func (s *EFContext) ProcessFits(ctx context.Context) {
+	dbCtx := context.Background()
 	for {
-		if err := crdb.ExecuteTx(ctx, s.DB, nil, s.processKM); err == sql.ErrNoRows {
+		if ctx.Err() != nil {
+			return
+		}
+
+		if err := crdb.ExecuteTx(dbCtx, s.DB, nil, s.processKM); err == sql.ErrNoRows {
 			time.Sleep(time.Second * 10)
 		} else if err != nil {
 			log.Printf("process fits: %+v", err)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(10 * time.Second):
+			}
 		}
 	}
 }

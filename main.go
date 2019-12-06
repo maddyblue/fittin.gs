@@ -23,6 +23,7 @@ var (
 	flagProcess      = flag.Bool("process", false, "processed unprocessed killmails")
 	flagCreateTables = flag.Bool("create-tables", false, "create tables")
 	flagLog          = flag.Bool("log", false, "log DB")
+	flagSync         = flag.Bool("sync", false, "run data sync")
 )
 
 type Specification struct {
@@ -47,7 +48,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// TODO: disable debug in prod
 	db := mustInitDB(dbURL.String())
 	defer db.Close()
 	if err := db.Ping(); err != nil {
@@ -73,16 +73,18 @@ func main() {
 		return
 	}
 
-	if !*flagLog {
+	if *flagSync {
 		go s.FetchHashes(ctx)
 		go s.ProcessFits(ctx)
-		go s.ProcessZkb(ctx)
+		fmt.Println("running sync")
+		select {}
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/Fit", s.Wrap(s.Fit))
 	mux.Handle("/api/Fits", s.Wrap(s.Fits))
 	mux.Handle("/api/Search", s.Wrap(s.Search))
+	mux.Handle("/api/Sync", s.Wrap(s.Sync))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {})
 
 	fmt.Println("HTTP listen on addr:", spec.Port)
