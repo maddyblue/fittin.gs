@@ -244,10 +244,30 @@ func (s *EFContext) FetchHashes(ctx context.Context) {
 					panic(err)
 				}
 				if err := crdb.ExecuteTx(ctx, s.DB, nil, func(txn *sql.Tx) error {
-					if _, err := txn.ExecContext(ctx, `UPSERT INTO hashes (id, hash, processed) VALUES ($1, $2, $3)`, pkg.Package.KillID, pkg.Package.Zkb.Hash, ProcHashFetched); err != nil {
+					if _, err := txn.ExecContext(ctx, `
+						INSERT
+						INTO
+							hashes (id, hash, processed)
+						VALUES
+							($1, $2, $3)
+						ON CONFLICT
+							(id)
+						DO
+							NOTHING
+					`, pkg.Package.KillID, pkg.Package.Zkb.Hash, ProcHashFetched); err != nil {
 						return err
 					}
-					if _, err := txn.ExecContext(ctx, `UPSERT INTO killmails (id, km, zkb) VALUES ($1, $2, $3)`, pkg.Package.KillID, rawKM, rawZKB); err != nil {
+					if _, err := txn.ExecContext(ctx, `
+						INSERT
+						INTO
+							killmails (id, km, zkb)
+						VALUES
+							($1, $2, $3)
+						ON CONFLICT
+							(id)
+						DO
+							NOTHING
+					`, pkg.Package.KillID, rawKM, rawZKB); err != nil {
 						return err
 					}
 					return nil
@@ -419,7 +439,28 @@ func (s *EFContext) processZkb(tx *sql.Tx) error {
 		args = append(args, filter(IsSub))
 		args = append(args, filter(IsFitting))
 
-		if _, err := tx.Exec(`UPSERT INTO fits (killmail, ship, solarsystem, hi, med, low, rig, sub, items) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, args...); err != nil {
+		if _, err := tx.Exec(`
+			INSERT
+			INTO
+				fits
+					(
+						killmail,
+						ship,
+						solarsystem,
+						hi,
+						med,
+						low,
+						rig,
+						sub,
+						items
+					)
+			VALUES
+				($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			ON CONFLICT
+				(killmail)
+			DO
+				NOTHING
+		`, args...); err != nil {
 			return errors.Wrap(err, "upsert")
 		}
 	}
@@ -491,7 +532,29 @@ func (s *EFContext) processKM(tx *sql.Tx) error {
 		args = append(args, filter(IsFitting))
 		args = append(args, int64(zkb.FittedValue))
 
-		if _, err := tx.Exec(`UPSERT INTO fits (killmail, ship, solarsystem, hi, med, low, rig, sub, items, cost) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, args...); err != nil {
+		if _, err := tx.Exec(`
+			INSERT
+			INTO
+				fits
+					(
+						killmail,
+						ship,
+						solarsystem,
+						hi,
+						med,
+						low,
+						rig,
+						sub,
+						items,
+						cost
+					)
+			VALUES
+				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			ON CONFLICT
+				(killmail)
+			DO
+				NOTHING
+		`, args...); err != nil {
 			return errors.Wrap(err, "upsert")
 		}
 	}
