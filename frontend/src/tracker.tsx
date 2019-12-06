@@ -4,9 +4,10 @@ import ReactGA from 'react-ga';
 import { useHistory } from 'react-router';
 
 const sendPageView: LocationListener = (location: Location): void => {
-	ReactGA.set({ page: location.pathname });
-	ReactGA.pageview(location.pathname);
-	console.debug('GA|Pageview Sent: ', location.pathname);
+	const loc = location.pathname + location.search;
+	ReactGA.set({ page: loc });
+	ReactGA.pageview(loc);
+	console.debug('pageview:', loc);
 };
 
 interface Props {
