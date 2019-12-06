@@ -84,7 +84,6 @@ func main() {
 	mux.Handle("/api/Fits", s.Wrap(s.Fits))
 	mux.Handle("/api/Search", s.Wrap(s.Search))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {})
-	mux.Handle("/", http.FileServer(http.Dir("static")))
 
 	fmt.Println("HTTP listen on addr:", spec.Port)
 	log.Fatal(http.ListenAndServe(spec.Port, mux))
