@@ -159,8 +159,9 @@ function Slots(props: { items: ItemCharge[] }) {
 				.map((v, idx) => {
 					return (
 						<div key={idx}>
-							<Icon id={v.ID} alt={v.Name} />{' '}
-							<Link to={'/?item=' + v.ID}>{v.Name}</Link>
+							<Link to={'/?item=' + v.ID}>
+								<Icon id={v.ID} alt={v.Name} /> {v.Name}
+							</Link>
 						</div>
 					);
 				})}
@@ -367,8 +368,11 @@ function SlotSummary(props: {
 		<Fragment>
 			{arr.map(([name, count]) => (
 				<span key={name} title={name}>
-					{count}x
-					<Link to={props.addParam('item', ids[name].toString())}>
+					<Link
+						to={props.addParam('item', ids[name].toString())}
+						style={{ color: 'var(--emph-high)', textDecoration: 'none' }}
+					>
+						{count}x
 						<Icon id={ids[name]} alt={name} overrideSize={32} />
 					</Link>
 				</span>
