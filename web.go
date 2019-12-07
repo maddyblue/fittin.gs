@@ -208,24 +208,34 @@ func (s *EFContext) Search(
 		Search  string
 		Results []Result
 	}
-	ret.Search = strings.ToLower(r.FormValue("term"))
+	ret.Search = strings.ToLower(strings.TrimSpace(r.FormValue("term")))
 	if len(ret.Search) < 3 {
 		return nil, nil
 	}
-	if ret.Search != "" {
-		for id, item := range s.Global.Items {
-			if !strings.Contains(item.Lower, ret.Search) {
-				continue
-			}
-			if typ := searchCategories[s.Global.Groups[item.Group].Category]; typ != "" {
-				ret.Results = append(ret.Results, Result{
-					Type: typ,
-					Name: item.Name,
-					ID:   id,
-				})
-				if len(ret.Results) > 50 {
+	fields := strings.Fields(ret.Search)
+	for id, item := range s.Global.Items {
+		if strings.Contains(item.Lower, ret.Search) {
+			// match
+		} else {
+			containsAll := true
+			for _, term := range fields {
+				if !strings.Contains(item.Lower, term) {
+					containsAll = false
 					break
 				}
+			}
+			if !containsAll {
+				continue
+			}
+		}
+		if typ := searchCategories[s.Global.Groups[item.Group].Category]; typ != "" {
+			ret.Results = append(ret.Results, Result{
+				Type: typ,
+				Name: item.Name,
+				ID:   id,
+			})
+			if len(ret.Results) > 50 {
+				break
 			}
 		}
 	}
