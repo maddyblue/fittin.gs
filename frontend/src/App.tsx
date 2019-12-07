@@ -495,6 +495,10 @@ function About() {
 				Submit feature requests or bug reports on{' '}
 				<a href="https://github.com/mjibson/fittin.gs">GitHub</a>.
 			</div>
+			<div className="mt2">
+				If you find this site useful, send ISK in game to{' '}
+				<span style={{ color: 'var(--emph-medium)' }}>Jean Iridus</span>.
+			</div>
 		</div>
 	);
 }
