@@ -1,4 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+
+function setTitle(name?: string) {
+	if (name) {
+		name += ' - ';
+	} else {
+		name = '';
+	}
+	document.title = name + 'fittin.gs';
+}
 
 function createCookie(name: string, value: string) {
 	localStorage.setItem(name, value);
@@ -61,4 +70,68 @@ function useKey(key: string) {
 	return pressed;
 }
 
-export { createCookie, readCookie, Fetch, useKey };
+interface ImgProps {
+	id: number;
+	alt: string;
+	overrideSize?: number;
+}
+
+function Render(props: ImgProps & { size: number }) {
+	return <Img type="render" {...props} />;
+}
+
+function Icon(props: ImgProps) {
+	return <Img type="icon" size={32} overrideSize={24} {...props} />;
+}
+
+function Img(props: ImgProps & { type: string; size: number }) {
+	return (
+		<img
+			className="v-mid mr2"
+			src={
+				'https://images.evetech.net/types/' +
+				props.id +
+				'/' +
+				props.type +
+				'?size=' +
+				props.size
+			}
+			alt={props.alt}
+			height={props.overrideSize || props.size}
+			width={props.overrideSize || props.size}
+		/>
+	);
+}
+
+function ISK(props: { isk: number }) {
+	const Misk = Number.parseFloat((props.isk / 1e6).toFixed(2));
+	return <span>{Misk.toLocaleString()}M</span>;
+}
+
+function Ref(props: { ID: number }) {
+	return <a href={'https://everef.net/type/' + props.ID}>everef</a>;
+}
+
+const flexChildrenClass = 'bg-dp01 pa1 ma1';
+
+export interface ItemCharge {
+	ID: number;
+	Name: string;
+	Charge?: {
+		ID: number;
+		Name: string;
+	};
+}
+
+export {
+	createCookie,
+	Fetch,
+	flexChildrenClass,
+	Icon,
+	ISK,
+	readCookie,
+	Ref,
+	Render,
+	setTitle,
+	useKey,
+};
