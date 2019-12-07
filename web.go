@@ -236,14 +236,17 @@ func (s *EFContext) Sync(
 	ctx context.Context, r *http.Request, timing *servertiming.Header,
 ) (interface{}, error) {
 	var wg sync.WaitGroup
-	for _, f := range []func(context.Context){
-		s.FetchHashes,
-		s.ProcessFits,
+	for name, f := range map[string]func(context.Context){
+		"FetchHashes": s.FetchHashes,
+		"ProcessFits": s.ProcessFits,
 	} {
 		f := f
+		name := name
 		wg.Add(1)
 		go func() {
+			start := time.Now()
 			f(ctx)
+			fmt.Println(name, "done in", time.Since(start))
 			wg.Done()
 		}()
 	}
