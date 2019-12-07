@@ -583,6 +583,7 @@ func (s *EFContext) processKM(tx *sql.Tx) error {
 		return errors.Wrap(err, "update killmails")
 	}
 
+	fmt.Println("processed km", km.KillmailId, "to", proc)
 	return nil
 }
 
