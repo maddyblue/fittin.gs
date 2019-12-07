@@ -485,15 +485,9 @@ func (s *EFContext) ProcessFits(ctx context.Context) {
 			return
 		}
 
-		if err := crdb.ExecuteTx(dbCtx, s.DB, nil, s.processKM); err == sql.ErrNoRows {
-			time.Sleep(time.Second * 10)
-		} else if err != nil {
+		if err := crdb.ExecuteTx(dbCtx, s.DB, nil, s.processKM); err != nil {
 			log.Printf("process fits: %+v", err)
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(10 * time.Second):
-			}
+			return
 		}
 	}
 }
