@@ -8,8 +8,10 @@ import {
 	setTitle,
 	Fetch,
 	flexChildrenClass,
+	savedPrefix,
 } from './common';
 import { Link, useParams } from 'react-router-dom';
+import { FitSummary } from './Fits';
 
 interface FitData {
 	Killmail: number;
@@ -35,7 +37,12 @@ interface FitData {
 
 export default function Fit() {
 	const { id } = useParams();
+	const savedCookie = savedPrefix + id;
+
 	const [data, setData] = useState<FitData | null>(null);
+	const [saved, setSaved] = useState<boolean>(
+		!!localStorage.getItem(savedCookie)
+	);
 
 	useEffect(() => {
 		setTitle();
@@ -55,14 +62,42 @@ export default function Fit() {
 		});
 	}, [id]);
 
+	useEffect(() => {
+		if (!data) {
+			return;
+		}
+		if (!saved) {
+			localStorage.removeItem(savedCookie);
+		} else {
+			const s: FitSummary = {
+				Killmail: data.Killmail,
+				Ship: data.Ship.ID,
+				Name: data.Ship.Name,
+				Cost: data.Zkb.fittedValue,
+				Hi: data.Hi.filter(populatedItem),
+				Med: data.Med.filter(populatedItem),
+				Lo: data.Low.filter(populatedItem),
+			};
+			localStorage.setItem(savedCookie, JSON.stringify(s));
+		}
+	}, [data, saved, savedCookie]);
+
 	if (!data) {
 		return <Fragment>loading...</Fragment>;
 	}
+
 	return (
 		<div className="flex flex-wrap">
 			<div className={flexChildrenClass}>
 				<h2>
 					<Link to={'/?ship=' + data.Ship.ID}>{data.Ship.Name}</Link>
+					<span
+						style={{ color: 'var(--emph-medium)' }}
+						className="pointer fr f6 pa1"
+						onClick={() => setSaved(!saved)}
+					>
+						[{saved ? 'un' : ''}save]
+					</span>
 				</h2>
 				<Render id={data.Ship.ID} size={256} alt={data.Ship.Name} />
 				<pre className="bg-dp04 pa1 f6">{TextFit(data)}</pre>
@@ -108,6 +143,10 @@ export default function Fit() {
 			</div>
 		</div>
 	);
+}
+
+function populatedItem(item: ItemCharge) {
+	return item.Name;
 }
 
 function Slots(props: { items: ItemCharge[] }) {

@@ -123,6 +123,8 @@ export interface ItemCharge {
 	};
 }
 
+export const savedPrefix = 'saved-';
+
 export {
 	createCookie,
 	Fetch,

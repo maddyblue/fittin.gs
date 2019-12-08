@@ -7,6 +7,7 @@ import Search from './Search';
 import About from './About';
 import Fit from './Fit';
 import Fits from './Fits';
+import Saved from './Saved';
 
 export default function App() {
 	const trackingId =
@@ -34,6 +35,7 @@ export default function App() {
 							<Route path="/fit/:id" children={<Fit />} />
 							<Route path="/search" children={<Search />} />
 							<Route path="/about" children={<About />} />
+							<Route path="/saved" children={<Saved />} />
 							<Route path="/" children={<Fits />} />
 						</Switch>
 					</div>

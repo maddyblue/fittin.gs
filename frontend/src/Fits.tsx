@@ -28,23 +28,6 @@ export default function Fits() {
 		return <Fragment>loading...</Fragment>;
 	}
 
-	const addParam = function(name: string, val: string) {
-		// Using location.search doesn't appear to update on URL
-		// change. I suspect this is due to something I misunderstand
-		// about hooks or some misuse of react router's useLocation,
-		// but for now just use the real search path.
-		const urlBase = window.location.search || '?';
-		const param = name + '=' + val;
-		let url = location.pathname + urlBase;
-		if (urlBase.indexOf(param) === -1) {
-			if (url[url.length - 1] !== '?') {
-				url += '&';
-			}
-			url += param;
-		}
-		return url;
-	};
-
 	return (
 		<div className="flex flex-column">
 			{Object.keys(data.Filter).length ? (
@@ -76,58 +59,83 @@ export default function Fits() {
 				</div>
 			) : null}
 			<div className={flexChildrenClass}>
-				<SortedTable
-					name="fits"
-					sort="Cost"
-					headers={[
-						{
-							name: 'Name',
-							header: 'ship',
-							cell: (_: any, row: any) => (
-								<Link to={addParam('ship', row.Ship)}>
-									<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
-									{row.Name}
-								</Link>
-							),
-						},
-						{
-							name: 'Cost',
-							header: 'fit',
-							desc: true,
-							cell: (v: any, row: any) => (
-								<Link to={'/fit/' + row.Killmail}>
-									{v > 0 ? <ISK isk={v} /> : 'unknown value'}
-								</Link>
-							),
-						},
-						{
-							name: 'Hi',
-							header: 'high slots',
-							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
-							desc: true,
-							cmp: slotCmp,
-						},
-						{
-							name: 'Med',
-							header: 'med slots',
-							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
-							desc: true,
-							cmp: slotCmp,
-						},
-						{
-							name: 'Lo',
-							header: 'low slots',
-							cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
-							desc: true,
-							cmp: slotCmp,
-						},
-					]}
-					data={data.Fits || []}
-					tableClass="collapse"
-					tdClass="ph2"
-				/>
+				<FitsTable data={data.Fits || []} />
 			</div>
 		</div>
+	);
+}
+
+export function FitsTable(props: { data: Array<FitSummary> }) {
+	const location = useLocation();
+
+	const addParam = function(name: string, val: string) {
+		// Using location.search doesn't appear to update on URL
+		// change. I suspect this is due to something I misunderstand
+		// about hooks or some misuse of react router's useLocation,
+		// but for now just use the real search path.
+		const urlBase = window.location.search || '?';
+		const param = name + '=' + val;
+		let url = location.pathname + urlBase;
+		if (urlBase.indexOf(param) === -1) {
+			if (url[url.length - 1] !== '?') {
+				url += '&';
+			}
+			url += param;
+		}
+		return url;
+	};
+
+	return (
+		<SortedTable
+			name="fits"
+			sort="Cost"
+			headers={[
+				{
+					name: 'Name',
+					header: 'ship',
+					cell: (_: any, row: any) => (
+						<Link to={addParam('ship', row.Ship)}>
+							<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
+							{row.Name}
+						</Link>
+					),
+				},
+				{
+					name: 'Cost',
+					header: 'fit',
+					desc: true,
+					cell: (v: any, row: any) => (
+						<Link to={'/fit/' + row.Killmail}>
+							{v > 0 ? <ISK isk={v} /> : 'unknown value'}
+						</Link>
+					),
+				},
+				{
+					name: 'Hi',
+					header: 'high slots',
+					cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+					desc: true,
+					cmp: slotCmp,
+				},
+				{
+					name: 'Med',
+					header: 'med slots',
+					cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+					desc: true,
+					cmp: slotCmp,
+				},
+				{
+					name: 'Lo',
+					header: 'low slots',
+					cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+					desc: true,
+					cmp: slotCmp,
+				},
+			]}
+			data={props.data}
+			tableClass="collapse"
+			tdClass="ph2"
+		/>
 	);
 }
 
@@ -177,13 +185,17 @@ interface FitsData {
 		item: ItemCharge[];
 		ship: ItemCharge[];
 	};
-	Fits: {
-		Killmail: number;
-		Ship: number;
-		Name: string;
-		Cost: number;
-		Hi: ItemCharge[];
-	}[];
+	Fits: FitSummary[];
+}
+
+export interface FitSummary {
+	Killmail: number;
+	Ship: number;
+	Name: string;
+	Cost: number;
+	Hi: ItemCharge[];
+	Med: ItemCharge[];
+	Lo: ItemCharge[];
 }
 
 function slotCmp(a: any, b: any): number {
