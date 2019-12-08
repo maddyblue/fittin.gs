@@ -166,7 +166,7 @@ function SlotSummary(props: {
 	return (
 		<Fragment>
 			{arr.map(([name, count]) => (
-				<span key={name} title={name}>
+				<span key={name} title={name} style={{whiteSpace:'nowrap'}}>
 					<Link
 						to={props.addParam('item', ids[name].toString())}
 						style={{ color: 'var(--emph-high)', textDecoration: 'none' }}
