@@ -4,6 +4,10 @@ a {
 	color: var(--primary);
 }
 
+a.active {
+	color: var(--secondary);
+}
+
 .flex > * {
 	background: var(--dp01);
 	padding: 0.5rem;

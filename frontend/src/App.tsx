@@ -1,7 +1,12 @@
 import React from 'react';
 import './App.css';
 import 'tachyons/css/tachyons.min.css';
-import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
+import {
+	BrowserRouter as Router,
+	Switch,
+	Route,
+	NavLink,
+} from 'react-router-dom';
 import GAListener from './tracker';
 import Search from './Search';
 import About from './About';
@@ -20,13 +25,18 @@ export default function App() {
 					<nav className="pa3 bg-dp04">
 						<ul className="list ma0 pa0">
 							<li className="ma2">
-								<Link to="/">fittin.gs</Link>
+								<NavLink to="/" exact>
+									fittin.gs
+								</NavLink>
 							</li>
 							<li className="ma2">
-								<Link to="/search">search</Link>
+								<NavLink to="/search">search</NavLink>
 							</li>
 							<li className="ma2">
-								<Link to="/about">about</Link>
+								<NavLink to="/saved">saved</NavLink>
+							</li>
+							<li className="ma2">
+								<NavLink to="/about">about</NavLink>
 							</li>
 						</ul>
 					</nav>
