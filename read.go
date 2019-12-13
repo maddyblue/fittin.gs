@@ -179,12 +179,11 @@ const (
 	SubSlot7
 )
 
-func IsHigh(s Slot) bool    { return s.IsHigh() }
-func IsMedium(s Slot) bool  { return s.IsMedium() }
-func IsLow(s Slot) bool     { return s.IsLow() }
-func IsRig(s Slot) bool     { return s.IsRig() }
-func IsSub(s Slot) bool     { return s.IsSub() }
-func IsFitting(s Slot) bool { return s.IsFitting() }
+func IsHigh(s Slot) bool   { return s.IsHigh() }
+func IsMedium(s Slot) bool { return s.IsMedium() }
+func IsLow(s Slot) bool    { return s.IsLow() }
+func IsRig(s Slot) bool    { return s.IsRig() }
+func IsSub(s Slot) bool    { return s.IsSub() }
 
 func (s Slot) IsHigh() bool {
 	return s >= HiSlot0 && s <= HiSlot7
@@ -204,21 +203,6 @@ func (s Slot) IsRig() bool {
 
 func (s Slot) IsSub() bool {
 	return s >= SubSlot0 && s <= SubSlot7
-}
-
-func (s Slot) IsFitting() bool {
-	for _, f := range []func() bool{
-		s.IsHigh,
-		s.IsMedium,
-		s.IsLow,
-		s.IsRig,
-		s.IsSub,
-	} {
-		if f() {
-			return true
-		}
-	}
-	return false
 }
 
 // FetchHashes listens on the zkillboard redisq API and populates the hashes
@@ -385,92 +369,6 @@ func (s *EFContext) Parse(ctx context.Context, inputFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func (s *EFContext) ProcessZkb(ctx context.Context) {
-	for {
-		if err := crdb.ExecuteTx(ctx, s.DB, nil, s.processZkb); err == sql.ErrNoRows {
-			time.Sleep(time.Second * 10)
-		} else if err != nil {
-			log.Printf("process zkb: %+v", err)
-		}
-	}
-}
-
-func (s *EFContext) processZkb(tx *sql.Tx) error {
-	var raw []byte
-	if err := tx.QueryRow(`SELECT zkb FROM killmails WHERE processed = $1 LIMIT 1`, ProcKMZkbAdded).Scan(&raw); err != nil {
-		return err
-	}
-
-	var km KM
-	if err := json.Unmarshal(raw, &km); err != nil {
-		panic(err)
-	}
-	// Only process fits where there's something fitted to a high
-	// slot. This filters out boring fits and stuff like drones.
-	hi, _, _, _, _ := km.Items(s)
-	hiCount := 0
-	for _, h := range hi {
-		if h.ID > 0 {
-			hiCount++
-		}
-	}
-	if hiCount > 0 {
-		v := km.Victim
-		var args []interface{}
-		args = append(args, km.KillmailId, v.ShipTypeId, km.SolarSystemId)
-		// Find items per slot.
-		filter := func(f func(Slot) bool) []byte {
-			var items []int32
-			for _, i := range v.Items {
-				if f(Slot(i.Flag)) {
-					items = append(items, i.ItemTypeId)
-				}
-			}
-			enc, err := json.Marshal(&items)
-			if err != nil {
-				panic(err)
-			}
-			return enc
-		}
-		args = append(args, filter(IsHigh))
-		args = append(args, filter(IsMedium))
-		args = append(args, filter(IsLow))
-		args = append(args, filter(IsRig))
-		args = append(args, filter(IsSub))
-		args = append(args, filter(IsFitting))
-
-		if _, err := tx.Exec(`
-			INSERT
-			INTO
-				fits
-					(
-						killmail,
-						ship,
-						solarsystem,
-						hi,
-						med,
-						low,
-						rig,
-						sub,
-						items
-					)
-			VALUES
-				($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT
-				(killmail)
-			DO
-				NOTHING
-		`, args...); err != nil {
-			return errors.Wrap(err, "upsert")
-		}
-	}
-	if _, err := tx.Exec(`UPDATE killmails SET processed = $2 WHERE id = $1`, km.KillmailId, ProcKMCostAdded); err != nil {
-		return errors.Wrap(err, "update killmails")
-	}
-
-	return nil
 }
 
 func (s *EFContext) ProcessFits(ctx context.Context) {
