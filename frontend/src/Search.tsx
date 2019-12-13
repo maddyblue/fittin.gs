@@ -45,6 +45,12 @@ export default function Search() {
 					if (b.Type === 'ship') {
 						return 1;
 					}
+					if (a.Type === 'group') {
+						return -1;
+					}
+					if (b.Type === 'group') {
+						return 1;
+					}
 					debugger; // should be unreachable
 					return 0;
 				});

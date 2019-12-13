@@ -43,7 +43,7 @@ func (s *EFContext) CreateTables() {
 		);
 
 		CREATE TABLE fits (
-			killmail    INT4 PRIMARY KEY,
+			killmail    INT4,
 			ship        INT4 NOT NULL,
 			cost        INT8,
 			solarsystem INT4 NOT NULL,
@@ -53,12 +53,7 @@ func (s *EFContext) CreateTables() {
 			rig         JSONB NOT NULL,
 			sub         JSONB NOT NULL,
 			items       JSONB NOT NULL,
-			INDEX (ship),
-			INVERTED INDEX (hi),
-			INVERTED INDEX (med),
-			INVERTED INDEX (low),
-			INVERTED INDEX (rig),
-			INVERTED INDEX (sub),
+			PRIMARY KEY (killmail DESC),
 			INVERTED INDEX (items)
 		);
 	`); err != nil {
@@ -510,7 +505,7 @@ func (s *EFContext) processKM(tx *sql.Tx) error {
 	}
 	// Only process fits where there's something fitted to a high
 	// slot. This filters out boring fits and stuff like drones.
-	hi, _, _, _, _ := km.Items(s)
+	hi, _, _, _, _, items := km.Items(s)
 	hiCount := 0
 	for _, h := range hi {
 		if h.ID > 0 {
@@ -540,7 +535,11 @@ func (s *EFContext) processKM(tx *sql.Tx) error {
 		args = append(args, filter(IsLow))
 		args = append(args, filter(IsRig))
 		args = append(args, filter(IsSub))
-		args = append(args, filter(IsFitting))
+		enc, err := json.Marshal(&items)
+		if err != nil {
+			panic(err)
+		}
+		args = append(args, enc)
 		args = append(args, int64(zkb.FittedValue))
 
 		if _, err := tx.Exec(`
@@ -581,7 +580,8 @@ func (s *EFContext) processKM(tx *sql.Tx) error {
 	return nil
 }
 
-func (k KM) Items(s *EFContext) (hi, med, low, rig, sub [8]ItemCharge) {
+func (k KM) Items(s *EFContext) (hi, med, low, rig, sub [8]ItemCharge, items []int32) {
+	items = append(items, k.Victim.ShipTypeId)
 	for _, i := range k.Victim.Items {
 		flag := Slot(i.Flag)
 		item := s.Global.Items[i.ItemTypeId]
@@ -613,6 +613,7 @@ func (k KM) Items(s *EFContext) (hi, med, low, rig, sub [8]ItemCharge) {
 		} else {
 			cur[n].Item = item
 		}
+		items = append(items, item.ID)
 	}
 	return
 }

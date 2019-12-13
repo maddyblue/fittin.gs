@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lib/pq"
 	servertiming "github.com/mitchellh/go-server-timing"
 	"github.com/pkg/errors"
 )
@@ -83,7 +84,7 @@ func (s *EFContext) Fit(
 	err := json.Unmarshal(rawKM, &km)
 	var zkb Zkb
 	json.Unmarshal(rawZKB, &zkb)
-	hi, med, low, rig, sub := km.Items(s)
+	hi, med, low, rig, sub, _ := km.Items(s)
 	return struct {
 		Killmail               int32
 		Zkb                    Zkb
@@ -130,30 +131,54 @@ func (s *EFContext) Fits(
 		FROM
 			fits
 		WHERE
-			true
+			TRUE
 	`)
 	var args []interface{}
 	if ship, _ := strconv.Atoi(r.Form.Get("ship")); ship > 0 {
 		args = append(args, ship)
-		fmt.Fprintf(&sb, " AND ship = $%d", len(args))
+		fmt.Fprintf(&sb, ` AND items @> $%d`, len(args))
 		ret.Filter["ship"] = append(ret.Filter["ship"], s.Global.Items[int32(ship)])
 	}
-	var items []string
+	var items []int
 	for _, item := range r.Form["item"] {
 		itemid, _ := strconv.Atoi(item)
 		if itemid <= 0 {
 			continue
 		}
-		items = append(items, item)
+		items = append(items, itemid)
 		ret.Filter["item"] = append(ret.Filter["item"], s.Global.Items[int32(itemid)])
 	}
 	if len(items) > 0 {
-		args = append(args, fmt.Sprintf(`[%s]`, strings.Join(items, ", ")))
-		fmt.Fprintf(&sb, " AND items @> $%d", len(args))
+		args = append(args, pq.Array(items))
+		fmt.Fprintf(&sb, ` AND items @> array_to_json($%d::int[])`, len(args))
 	}
-	sb.WriteString(` ORDER BY killmail DESC`)
-	sb.WriteString(` LIMIT 100`)
+	if group, _ := strconv.Atoi(r.Form.Get("group")); group > 0 {
+		group := int32(group)
+		sb.WriteString(` AND (`)
+		or := ""
+		for id, item := range s.Global.Items {
+			if item.Group != group {
+				continue
+			}
+			args = append(args, id)
+			sb.WriteString(or)
+			or = " OR "
+			fmt.Fprintf(&sb, ` items @> $%d`, len(args))
+		}
+		sb.WriteString(`)`)
+		g := s.Global.Groups[group]
+		ret.Filter["group"] = append(ret.Filter["group"], Item{
+			Name: g.Name,
+			ID:   g.ID,
+		})
+	}
 
+	sb.WriteString(`
+		ORDER BY
+			killmail DESC
+		LIMIT
+			100
+	`)
 	selectT := timing.NewMetric("select").Start()
 	err := s.X.SelectContext(ctx, &ret.Fits, sb.String(), args...)
 	selectT.Stop()
@@ -213,20 +238,32 @@ func (s *EFContext) Search(
 		return nil, nil
 	}
 	fields := strings.Fields(ret.Search)
+	match := func(s string) bool {
+		if strings.Contains(s, ret.Search) {
+			return true
+		}
+		containsAll := true
+		for _, term := range fields {
+			if !strings.Contains(s, term) {
+				containsAll = false
+				break
+			}
+		}
+		return containsAll
+	}
+	for id, group := range s.Global.Groups {
+		if !match(strings.ToLower(group.Name)) {
+			continue
+		}
+		ret.Results = append(ret.Results, Result{
+			Type: "group",
+			Name: group.Name,
+			ID:   id,
+		})
+	}
 	for id, item := range s.Global.Items {
-		if strings.Contains(item.Lower, ret.Search) {
-			// match
-		} else {
-			containsAll := true
-			for _, term := range fields {
-				if !strings.Contains(item.Lower, term) {
-					containsAll = false
-					break
-				}
-			}
-			if !containsAll {
-				continue
-			}
+		if !match(item.Lower) {
+			continue
 		}
 		if typ := searchCategories[s.Global.Groups[item.Group].Category]; typ != "" {
 			ret.Results = append(ret.Results, Result{
@@ -234,9 +271,9 @@ func (s *EFContext) Search(
 				Name: item.Name,
 				ID:   id,
 			})
-			if len(ret.Results) > 50 {
-				break
-			}
+		}
+		if len(ret.Results) > 50 {
+			break
 		}
 	}
 	return ret, nil
