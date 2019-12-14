@@ -152,6 +152,9 @@ function SlotSummary(props: {
 	const counts: { [name: string]: number } = {};
 	const ids: { [name: string]: number } = {};
 	props.items.forEach(v => {
+		if (!v.Name) {
+			return;
+		}
 		if (!counts[v.Name]) {
 			counts[v.Name] = 0;
 			ids[v.Name] = v.ID;
