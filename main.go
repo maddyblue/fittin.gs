@@ -84,7 +84,7 @@ func main() {
 	mux.Handle("/api/Fit", s.Wrap(s.Fit))
 	mux.Handle("/api/Fits", s.Wrap(s.Fits))
 	mux.Handle("/api/Search", s.Wrap(s.Search))
-	mux.Handle("/api/Sync", s.Wrap(s.Sync))
+	mux.HandleFunc("/api/Sync", s.Sync)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {})
 
 	fmt.Println("HTTP listen on addr:", spec.Port)

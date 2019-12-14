@@ -279,9 +279,11 @@ func (s *EFContext) Search(
 	return ret, nil
 }
 
-func (s *EFContext) Sync(
-	ctx context.Context, r *http.Request, timing *servertiming.Header,
-) (interface{}, error) {
+func (s *EFContext) Sync(w http.ResponseWriter, r *http.Request) {
+	// Use a time just less than 5 minutes because the cloud scheduler runs every 5 minutes.
+	const almost5Min = time.Second * 295
+	ctx, cancel := context.WithTimeout(r.Context(), almost5Min)
+	defer cancel()
 	var wg sync.WaitGroup
 	for name, f := range map[string]func(context.Context){
 		"FetchHashes": s.FetchHashes,
@@ -298,7 +300,6 @@ func (s *EFContext) Sync(
 		}()
 	}
 	wg.Wait()
-	return nil, nil
 }
 
 func resultToBytes(res interface{}) (data, gzipped []byte, err error) {
