@@ -94,7 +94,10 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 					name: 'Name',
 					header: 'ship',
 					cell: (_: any, row: any) => (
-						<Link to={addParam('ship', row.Ship)}>
+						<Link
+							to={addParam('ship', row.Ship)}
+							style={{ whiteSpace: 'nowrap' }}
+						>
 							<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
 							{row.Name}
 						</Link>
@@ -166,7 +169,7 @@ function SlotSummary(props: {
 	return (
 		<Fragment>
 			{arr.map(([name, count]) => (
-				<span key={name} title={name} style={{whiteSpace:'nowrap'}}>
+				<span key={name} title={name} style={{ whiteSpace: 'nowrap' }}>
 					<Link
 						to={props.addParam('item', ids[name].toString())}
 						style={{ color: 'var(--emph-high)', textDecoration: 'none' }}
