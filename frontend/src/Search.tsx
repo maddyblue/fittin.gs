@@ -88,7 +88,8 @@ export default function Search() {
 					{data.results.Results.map(v => (
 						<div key={v.ID} className="ma2">
 							<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
-								<Icon id={v.ID} alt={v.Name} /> {v.Name}
+								{v.Type !== 'group' ? <Icon id={v.ID} alt={v.Name} /> : null}
+								{v.Name}
 							</Link>{' '}
 							({v.Type})
 						</div>
