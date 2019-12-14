@@ -161,7 +161,8 @@ function Slots(props: { items: ItemCharge[] }) {
 					return (
 						<div key={idx}>
 							<Link to={'/?item=' + v.ID}>
-								<Icon id={v.ID} alt={v.Name} /> {v.Name}
+								<Icon id={v.ID} alt={v.Name} />
+								{v.Name}
 							</Link>
 						</div>
 					);
