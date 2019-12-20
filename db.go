@@ -36,7 +36,6 @@ type drv struct{}
 
 func (d drv) Open(name string) (driver.Conn, error) {
 	c, err := pq.Open(name)
-	fmt.Println("LOG:", *flagLog)
 	c = &conn{
 		Conn: c,
 		log:  *flagLog,
