@@ -47,10 +47,12 @@ func (s *EFContext) Wrap(
 		res, err := f(ctx, r, &sh)
 		tm.Stop()
 		if len(sh.Metrics) > 0 {
-			if len(sh.Metrics) > 10 {
-				sh.Metrics = sh.Metrics[:10]
-			}
 			w.Header().Add(servertiming.HeaderKey, sh.String())
+			if *flagLog {
+				for _, m := range sh.Metrics {
+					fmt.Printf("timing: %s: %s\n", m.Name, m.Duration)
+				}
+			}
 		}
 		if err != nil {
 			log.Printf("%s: %+v", url, err)
