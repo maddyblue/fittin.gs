@@ -1,1 +1,6 @@
+backup*
+cockroach
 sde
+*.crt
+*.sh
+*.sql
