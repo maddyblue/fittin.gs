@@ -121,6 +121,7 @@ export interface ItemCharge {
 		ID: number;
 		Name: string;
 	};
+	Group?: number;
 }
 
 export const savedPrefix = 'saved-';

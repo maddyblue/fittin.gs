@@ -11,6 +11,34 @@ import {
 	ItemCharge,
 } from './common';
 
+function addParam(search: string, name: string, val: string) {
+	const param = name + '=' + val;
+	if (search) {
+		return search + '&' + param;
+	}
+	return '?' + param;
+}
+
+function removeParam(search: string, name: string, val: string) {
+	const old = new URLSearchParams(search);
+	const next = new URLSearchParams();
+	for (let pair of old.entries()) {
+		if (pair[0] === name && pair[1] === val) {
+			continue;
+		}
+		next.append(pair[0], pair[1]);
+	}
+	return '?' + next.toString();
+}
+
+function makeURL(search: string) {
+	const pathname = window.location.pathname;
+	if (!search) {
+		return pathname;
+	}
+	return pathname + search;
+}
+
 export default function Fits() {
 	const [data, setData] = useState<FitsData | null>(null);
 	const location = useLocation();
@@ -36,19 +64,33 @@ export default function Fits() {
 						items.map(item => (
 							<div key={item.ID} className="ma1">
 								filter by {type}: {item.Name}
+								{item.Group ? (
+									<Link
+										to={makeURL(
+											addParam(
+												removeParam(
+													window.location.search,
+													type,
+													item.ID.toString()
+												),
+												'group',
+												item.Group.toString()
+											)
+										)}
+										className="ma1"
+									>
+										(group)
+									</Link>
+								) : null}
 								<button
 									className="mh2 ba b--secondary bg-dp08 pointer"
-									onClick={() => {
-										const old = new URLSearchParams(location.search);
-										const next = new URLSearchParams();
-										for (let pair of old.entries()) {
-											if (pair[0] === type && pair[1] === item.ID.toString()) {
-												continue;
-											}
-											next.append(pair[0], pair[1]);
-										}
-										history.push(location.pathname + '?' + next.toString());
-									}}
+									onClick={() =>
+										history.push(
+											window.location.pathname +
+												'?' +
+												removeParam(location.search, type, item.ID.toString())
+										)
+									}
 								>
 									x
 								</button>
@@ -68,23 +110,6 @@ export default function Fits() {
 export function FitsTable(props: { data: Array<FitSummary> }) {
 	const location = useLocation();
 
-	const addParam = function(name: string, val: string) {
-		// Using location.search doesn't appear to update on URL
-		// change. I suspect this is due to something I misunderstand
-		// about hooks or some misuse of react router's useLocation,
-		// but for now just use the real search path.
-		const urlBase = window.location.search || '?';
-		const param = name + '=' + val;
-		let url = location.pathname + urlBase;
-		if (urlBase.indexOf(param) === -1) {
-			if (url[url.length - 1] !== '?') {
-				url += '&';
-			}
-			url += param;
-		}
-		return url;
-	};
-
 	return (
 		<SortedTable
 			name="fits"
@@ -95,7 +120,7 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 					header: 'ship',
 					cell: (_: any, row: any) => (
 						<Link
-							to={addParam('ship', row.Ship)}
+							to={makeURL(addParam(location.search, 'ship', row.Ship))}
 							style={{ whiteSpace: 'nowrap' }}
 						>
 							<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
@@ -116,21 +141,21 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 				{
 					name: 'Hi',
 					header: 'high slots',
-					cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+					cell: (v: any) => <SlotSummary items={v} />,
 					desc: true,
 					cmp: slotCmp,
 				},
 				{
 					name: 'Med',
 					header: 'med slots',
-					cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+					cell: (v: any) => <SlotSummary items={v} />,
 					desc: true,
 					cmp: slotCmp,
 				},
 				{
 					name: 'Lo',
 					header: 'low slots',
-					cell: (v: any) => <SlotSummary items={v} addParam={addParam} />,
+					cell: (v: any) => <SlotSummary items={v} />,
 					desc: true,
 					cmp: slotCmp,
 				},
@@ -142,10 +167,8 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 	);
 }
 
-function SlotSummary(props: {
-	items: ItemCharge[];
-	addParam: (name: string, val: string) => string;
-}) {
+function SlotSummary(props: { items: ItemCharge[] }) {
+	const location = useLocation();
 	if (!props.items) {
 		return null;
 	}
@@ -174,7 +197,9 @@ function SlotSummary(props: {
 			{arr.map(([name, count]) => (
 				<span key={name} title={name} style={{ whiteSpace: 'nowrap' }}>
 					<Link
-						to={props.addParam('item', ids[name].toString())}
+						to={makeURL(
+							addParam(location.search, 'item', ids[name].toString())
+						)}
 						style={{ color: 'var(--emph-high)', textDecoration: 'none' }}
 					>
 						{count}x

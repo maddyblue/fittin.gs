@@ -152,12 +152,16 @@ func (s *EFContext) Fits(
 		args = append(args, pq.Array(items))
 		fmt.Fprintf(&sb, ` AND items @> array_to_json($%d::int[])`, len(args))
 	}
-	if group, _ := strconv.Atoi(r.Form.Get("group")); group > 0 {
-		group := int32(group)
+	for _, group := range r.Form["group"] {
+		groupid, _ := strconv.Atoi(group)
+		if groupid <= 0 {
+			continue
+		}
+		gid := int32(groupid)
 		sb.WriteString(` AND (`)
 		or := ""
 		for id, item := range s.Global.Items {
-			if item.Group != group {
+			if item.Group != gid {
 				continue
 			}
 			args = append(args, id)
@@ -166,7 +170,7 @@ func (s *EFContext) Fits(
 			fmt.Fprintf(&sb, ` items @> $%d`, len(args))
 		}
 		sb.WriteString(`)`)
-		g := s.Global.Groups[group]
+		g := s.Global.Groups[gid]
 		ret.Filter["group"] = append(ret.Filter["group"], Item{
 			Name: g.Name,
 			ID:   g.ID,

@@ -221,5 +221,5 @@ type Item struct {
 	ID    int32  `json:",omitempty"`
 	Name  string `json:",omitempty"`
 	Lower string `json:"-"`
-	Group int32  `json:"-"`
+	Group int32
 }
