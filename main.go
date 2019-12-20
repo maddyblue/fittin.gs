@@ -19,7 +19,6 @@ import (
 )
 
 var (
-	flagParse        = flag.String("parse", "", "JSON file to parse")
 	flagProcess      = flag.Bool("process", false, "processed unprocessed killmails")
 	flagCreateTables = flag.Bool("create-tables", false, "create tables")
 	flagLog          = flag.Bool("log", false, "log DB")
@@ -67,11 +66,6 @@ func main() {
 	}
 
 	ctx := context.Background()
-
-	if *flagParse != "" {
-		s.Parse(ctx, *flagParse)
-		return
-	}
 
 	if *flagSync {
 		go s.FetchHashes(ctx)

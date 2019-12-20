@@ -5,17 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 
-	"github.com/antihax/goesi"
 	"github.com/antihax/goesi/esi"
 	"github.com/cockroachdb/cockroach-go/crdb"
-	"github.com/lib/pq"
 	"github.com/pkg/errors"
 )
 
@@ -70,63 +65,6 @@ const (
 )
 
 type KM esi.GetKillmailsKillmailIdKillmailHashOk
-
-type Kill struct {
-	hash string
-	km   KM
-	json []byte
-}
-
-func parseKMs(ctx context.Context, r io.Reader) ([]*Kill, error) {
-	var m map[string]string
-	if err := json.NewDecoder(r).Decode(&m); err != nil {
-		return nil, err
-	}
-
-	client := goesi.NewAPIClient(nil, "ef")
-
-	var kills []*Kill
-	fmt.Println("fetching", len(m), "kills")
-	for id, hash := range m {
-		k := parseKill(ctx, client, id, hash)
-		if k == nil {
-			continue
-		}
-		kills = append(kills, k)
-		if len(kills)%5 == 0 {
-			fmt.Println(len(kills), "done of", len(m))
-		}
-		if len(kills) == 50 {
-			break
-		}
-	}
-	return kills, nil
-}
-
-func parseKill(ctx context.Context, client *goesi.APIClient, id, hash string) *Kill {
-	resp, _, err := client.ESI.KillmailsApi.GetKillmailsKillmailIdKillmailHash(ctx, hash, mustInt32(id), nil)
-	if err != nil {
-		fmt.Println("ERR", err)
-		return nil
-	}
-	raw, err := json.Marshal(resp)
-	if err != nil {
-		panic(err)
-	}
-	return &Kill{
-		hash: hash,
-		km:   KM(resp),
-		json: raw,
-	}
-}
-
-func mustInt32(s string) int32 {
-	i, err := strconv.ParseInt(s, 10, 32)
-	if err != nil {
-		panic(err)
-	}
-	return int32(i)
-}
 
 type Slot int32
 
@@ -320,55 +258,6 @@ type Zkb struct {
 	Solo        bool    `json:"solo"`
 	Awox        bool    `json:"awox"`
 	Href        string  `json:"href"`
-}
-
-func (s *EFContext) Parse(ctx context.Context, inputFile string) {
-	f, err := os.Open(inputFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	kms, err := parseKMs(ctx, f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("importing", len(kms), "kms")
-
-	txn, err := s.DB.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	stmt, err := txn.Prepare(pq.CopyIn("killmails", "id", "hash", "km"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, km := range kms {
-		_, err = stmt.Exec(
-			km.km.KillmailId,
-			km.hash,
-			string(km.json),
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	_, err = stmt.Exec()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = stmt.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = txn.Commit()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func (s *EFContext) ProcessFits(ctx context.Context) {
