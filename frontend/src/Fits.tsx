@@ -11,12 +11,9 @@ import {
 	ItemCharge,
 } from './common';
 
-function addParam(search: string, name: string, val: string) {
-	const param = name + '=' + val;
-	if (search) {
-		return search + '&' + param;
-	}
-	return '?' + param;
+function addParam(search: URLSearchParams, name: string, val: string) {
+	search.append(name, val);
+	return search;
 }
 
 function removeParam(search: string, name: string, val: string) {
@@ -28,15 +25,15 @@ function removeParam(search: string, name: string, val: string) {
 		}
 		next.append(pair[0], pair[1]);
 	}
-	return '?' + next.toString();
+	return next;
 }
 
-function makeURL(search: string) {
+function makeURL(search: URLSearchParams) {
 	const pathname = window.location.pathname;
 	if (!search) {
 		return pathname;
 	}
-	return pathname + search;
+	return pathname + '?' + search;
 }
 
 export default function Fits() {
@@ -120,7 +117,9 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 					header: 'ship',
 					cell: (_: any, row: any) => (
 						<Link
-							to={makeURL(addParam(location.search, 'ship', row.Ship))}
+							to={makeURL(
+								addParam(new URLSearchParams(location.search), 'ship', row.Ship)
+							)}
 							style={{ whiteSpace: 'nowrap' }}
 						>
 							<Icon id={row.Ship} alt={row.Name} overrideSize={32} />
@@ -198,7 +197,11 @@ function SlotSummary(props: { items: ItemCharge[] }) {
 				<span key={name} title={name} style={{ whiteSpace: 'nowrap' }}>
 					<Link
 						to={makeURL(
-							addParam(location.search, 'item', ids[name].toString())
+							addParam(
+								new URLSearchParams(location.search),
+								'item',
+								ids[name].toString()
+							)
 						)}
 						style={{ color: 'var(--emph-high)', textDecoration: 'none' }}
 					>
