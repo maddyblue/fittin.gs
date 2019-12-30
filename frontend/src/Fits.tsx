@@ -43,7 +43,11 @@ export default function Fits() {
 	setTitle();
 
 	useEffect(() => {
+		const search = location.search;
 		Fetch<FitsData>('Fits' + location.search, data => {
+			if (window.location.search !== search) {
+				return;
+			}
 			setTitle();
 			setData(data);
 		});
