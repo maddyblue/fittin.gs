@@ -18,7 +18,12 @@ interface SearchResult {
 	ID: number;
 }
 
-export default function Search() {
+export interface SearchProps {
+	Pathname?: string;
+}
+
+export default function Search(props: SearchProps) {
+	const path = props.Pathname || '/';
 	const search = new URLSearchParams(window.location.search);
 	const q = search.get('q') || '';
 
@@ -62,9 +67,19 @@ export default function Search() {
 	useEffect(() => {
 		if (enterPress && data.results && data.results.Results) {
 			const r = data.results.Results[0];
-			history.push('/?' + r.Type + '=' + r.ID.toString());
+			const search = new URLSearchParams(window.location.search);
+			search.delete('q');
+			search.append(r.Type, r.ID.toString());
+			history.push(path + '?' + search.toString());
 		}
-	}, [enterPress, data.results, history]);
+	}, [enterPress, data.results, history, path]);
+
+	const makeLink = (v: SearchResult) => {
+		const search = new URLSearchParams(window.location.search);
+		search.append(v.Type, v.ID.toString());
+		search.delete('q');
+		return path + '?' + search.toString();
+	};
 
 	return (
 		<div className="flex flex-column">
@@ -79,7 +94,9 @@ export default function Search() {
 						if (v === undefined) {
 							return;
 						}
-						history.replace('/search?q=' + encodeURIComponent(v));
+						const search = new URLSearchParams(window.location.search);
+						search.set('q', v);
+						history.replace(path + '?' + search.toString());
 					}}
 				/>
 			</div>
@@ -87,7 +104,7 @@ export default function Search() {
 				<div className={flexChildrenClass}>
 					{data.results.Results.map(v => (
 						<div key={v.ID} className="ma2">
-							<Link to={'/?' + v.Type + '=' + v.ID.toString()}>
+							<Link to={makeLink(v)}>
 								{v.Type !== 'group' ? <Icon id={v.ID} alt={v.Name} /> : null}
 								{v.Name}
 							</Link>{' '}

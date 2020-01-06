@@ -10,6 +10,7 @@ import {
 	flexChildrenClass,
 	ItemCharge,
 } from './common';
+import Search from './Search';
 
 function addParam(search: URLSearchParams, name: string, val: string) {
 	search.append(name, val);
@@ -38,13 +39,15 @@ function makeURL(search: URLSearchParams) {
 
 export default function Fits() {
 	const [data, setData] = useState<FitsData | null>(null);
-	const location = useLocation();
 	const history = useHistory();
+	const location = useLocation();
 	setTitle();
 
 	useEffect(() => {
-		const search = location.search;
-		Fetch<FitsData>('Fits' + location.search, data => {
+		const search = window.location.search;
+		const params = new URLSearchParams(search);
+		params.delete('q');
+		Fetch<FitsData>('Fits?' + params.toString(), data => {
 			if (window.location.search !== search) {
 				return;
 			}
@@ -89,7 +92,11 @@ export default function Fits() {
 										history.push(
 											window.location.pathname +
 												'?' +
-												removeParam(location.search, type, item.ID.toString())
+												removeParam(
+													window.location.search,
+													type,
+													item.ID.toString()
+												)
 										)
 									}
 								>
@@ -101,6 +108,7 @@ export default function Fits() {
 					)}
 				</div>
 			) : null}
+			<Search Pathname="/" />
 			<div className={flexChildrenClass}>
 				<FitsTable data={data.Fits || []} />
 			</div>
@@ -109,8 +117,6 @@ export default function Fits() {
 }
 
 export function FitsTable(props: { data: Array<FitSummary> }) {
-	const location = useLocation();
-
 	return (
 		<SortedTable
 			name="fits"
@@ -122,7 +128,11 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 					cell: (_: any, row: any) => (
 						<Link
 							to={makeURL(
-								addParam(new URLSearchParams(location.search), 'ship', row.Ship)
+								addParam(
+									new URLSearchParams(window.location.search),
+									'ship',
+									row.Ship
+								)
 							)}
 							style={{ whiteSpace: 'nowrap' }}
 						>
@@ -171,7 +181,6 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 }
 
 function SlotSummary(props: { items: ItemCharge[] }) {
-	const location = useLocation();
 	if (!props.items) {
 		return null;
 	}
@@ -202,7 +211,7 @@ function SlotSummary(props: { items: ItemCharge[] }) {
 					<Link
 						to={makeURL(
 							addParam(
-								new URLSearchParams(location.search),
+								new URLSearchParams(window.location.search),
 								'item',
 								ids[name].toString()
 							)
