@@ -104,8 +104,8 @@ function Img(props: ImgProps & { type: string; size: number }) {
 }
 
 function ISK(props: { isk: number }) {
-	const Misk = Number.parseFloat((props.isk / 1e6).toFixed(2));
-	return <span>{Misk.toLocaleString()}M</span>;
+	const Misk = (props.isk / 1e6).toFixed(2);
+	return <span>{Misk}M</span>;
 }
 
 function Ref(props: { ID: number }) {
