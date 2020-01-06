@@ -109,8 +109,6 @@ export default function Fits() {
 }
 
 export function FitsTable(props: { data: Array<FitSummary> }) {
-	const location = useLocation();
-
 	return (
 		<SortedTable
 			name="fits"
@@ -122,7 +120,11 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 					cell: (_: any, row: any) => (
 						<Link
 							to={makeURL(
-								addParam(new URLSearchParams(location.search), 'ship', row.Ship)
+								addParam(
+									new URLSearchParams(window.location.search),
+									'ship',
+									row.Ship
+								)
 							)}
 							style={{ whiteSpace: 'nowrap' }}
 						>
@@ -173,7 +175,6 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 }
 
 function SlotSummary(props: { items: ItemCharge[] }) {
-	const location = useLocation();
 	if (!props.items) {
 		return null;
 	}
@@ -204,7 +205,7 @@ function SlotSummary(props: { items: ItemCharge[] }) {
 					<Link
 						to={makeURL(
 							addParam(
-								new URLSearchParams(location.search),
+								new URLSearchParams(window.location.search),
 								'item',
 								ids[name].toString()
 							)
