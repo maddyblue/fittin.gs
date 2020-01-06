@@ -136,9 +136,11 @@ export function FitsTable(props: { data: Array<FitSummary> }) {
 					header: 'fit',
 					desc: true,
 					cell: (v: any, row: any) => (
-						<Link to={'/fit/' + row.Killmail}>
-							{v > 0 ? <ISK isk={v} /> : 'unknown value'}
-						</Link>
+						<div style={{ textAlign: 'right' }}>
+							<Link to={'/fit/' + row.Killmail}>
+								{v > 0 ? <ISK isk={v} /> : 'unknown value'}
+							</Link>
+						</div>
 					),
 				},
 				{
