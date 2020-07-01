@@ -122,20 +122,6 @@ func (s *EFContext) Fits(
 	r.ParseForm()
 
 	var sb strings.Builder
-	sb.WriteString(`
-		SELECT
-			killmail,
-			ship,
-			cost,
-			hi AS hiraw,
-			med AS medraw,
-			low AS lowraw
-		FROM
-			--TODO: without this hint, the primary index is used with a full scan.
-			fits@fits_items_idx
-		WHERE
-			TRUE
-	`)
 	var args []interface{}
 	if ship, _ := strconv.Atoi(r.Form.Get("ship")); ship > 0 {
 		args = append(args, ship)
@@ -180,14 +166,32 @@ func (s *EFContext) Fits(
 		})
 	}
 
-	sb.WriteString(`
+	var query strings.Builder
+	query.WriteString(`
+		SELECT
+			killmail,
+			ship,
+			cost,
+			hi AS hiraw,
+			med AS medraw,
+			low AS lowraw
+		FROM
+	`)
+	if len(args) > 0 {
+		// TODO: without this hint, the primary index is used with a full scan.
+		query.WriteString(`fits@fits_items_idx WHERE TRUE`)
+		query.WriteString(sb.String())
+	} else {
+		query.WriteString(`fits`)
+	}
+	query.WriteString(`
 		ORDER BY
 			killmail DESC
 		LIMIT
 			100
 	`)
 	selectT := timing.NewMetric("select").Start()
-	err := s.X.SelectContext(ctx, &ret.Fits, sb.String(), args...)
+	err := s.X.SelectContext(ctx, &ret.Fits, query.String(), args...)
 	selectT.Stop()
 
 	var his, meds, los []int32
