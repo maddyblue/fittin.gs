@@ -131,7 +131,8 @@ func (s *EFContext) Fits(
 			med AS medraw,
 			low AS lowraw
 		FROM
-			fits
+			--TODO: without this hint, the primary index is used with a full scan.
+			fits@fits_items_idx
 		WHERE
 			TRUE
 	`)
