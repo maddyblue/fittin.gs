@@ -107,7 +107,7 @@ export default function Fit() {
 					</div>
 				) : null}
 				<div className="list">
-					<a href={'https://zkillboard.com/kill/' + data.Killmail}>
+					<a href={'https://zkillboard.com/kill/' + data.Killmail + '/'}>
 						zkillboard
 					</a>
 					<Ref ID={data.Ship.ID} />
